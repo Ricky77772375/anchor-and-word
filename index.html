@@ -1336,7 +1336,7 @@ showConnections(null);
 
       if (autoRotate && !userDragging &&
           !document.hidden) {
-        rotation += elapsed * .000035;
+        rotation -= elapsed * .000035;
         draw();
       }
     }
