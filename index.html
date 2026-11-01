@@ -1072,6 +1072,286 @@ showConnections(null);
 })();
 /* END v1.1 */
 
+/* ANCHOR & WORD v1.2 — 3D SPIRAL CONNECTION PATHS */
+(function () {
+  "use strict";
+
+  const NS = "http://www.w3.org/2000/svg";
+
+  const css = document.createElement("style");
+  css.textContent = `
+    #spiralConnectionLines {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 0;
+    }
+    .spiral-path {
+      fill: none;
+      stroke: #bca0fa;
+      stroke-width: 2;
+      stroke-linecap: round;
+      opacity: .8;
+      filter: drop-shadow(0 0 3px #b69aff);
+    }
+    .spiral-path.thematic {
+      stroke-dasharray: 5 7;
+    }
+    .spiral-path.direct {
+      stroke: #efd18a;
+      stroke-width: 2.5;
+    }
+    .spiral-path.focused {
+      stroke-width: 4;
+      opacity: 1;
+    }
+    .book.path-source {
+      box-shadow: 0 0 35px #ffd56f !important;
+    }
+    .book.path-related {
+      box-shadow: 0 0 30px #b99aff !important;
+    }
+    .path-controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      padding: 10px 0;
+    }
+    .path-controls label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #d6e1f0;
+      font-size: 12px;
+    }
+    .path-controls input {
+      width: auto;
+      accent-color: #e4c17d;
+    }
+    .path-legend {
+      font-size: 12px;
+      color: #aebfd6;
+      line-height: 1.7;
+    }
+  `;
+  document.head.appendChild(css);
+
+  // Place SVG behind the book buttons, inside the stage.
+  const svg = document.createElementNS(NS, "svg");
+  svg.id = "spiralConnectionLines";
+  svg.setAttribute("aria-hidden", "true");
+  stage.insertBefore(svg, spiral);
+
+  // Ensure the spiral remains above the connection paths.
+  spiral.style.zIndex = "1";
+  spiral.style.pointerEvents = "none";
+  nodes.forEach(node => {
+    node.style.pointerEvents = "auto";
+  });
+
+  const controls = document.createElement("div");
+  controls.className = "path-controls";
+
+  const lineToggle = document.createElement("input");
+  lineToggle.type = "checkbox";
+  lineToggle.checked = true;
+  lineToggle.id = "showSpiralPaths";
+
+  const lineLabel = document.createElement("label");
+  lineLabel.htmlFor = lineToggle.id;
+  lineLabel.append(lineToggle, "Show 3D connection lines");
+
+  const rotateToggle = document.createElement("input");
+  rotateToggle.type = "checkbox";
+  rotateToggle.checked = true;
+  rotateToggle.id = "autoRotateSpiral";
+
+  const rotateLabel = document.createElement("label");
+  rotateLabel.htmlFor = rotateToggle.id;
+  rotateLabel.append(rotateToggle, "Slow automatic rotation");
+
+  controls.append(lineLabel, rotateLabel);
+  stage.insertAdjacentElement("afterend", controls);
+
+  const legend = document.createElement("div");
+  legend.className = "path-legend";
+  legend.textContent =
+    "Gold = source book · Violet = related books · " +
+    "Dashed lines = thematic study relationships";
+  controls.insertAdjacentElement("afterend", legend);
+
+  let current = null;
+  let linesEnabled = true;
+  let autoRotate = true;
+  let userDragging = false;
+  let previousFrame = 0;
+
+  function makeSVG(tag, attrs) {
+    const element = document.createElementNS(NS, tag);
+    Object.entries(attrs).forEach(([key, value]) => {
+      element.setAttribute(key, String(value));
+    });
+    return element;
+  }
+
+  function bookCenter(index) {
+    const rect = nodes[index].getBoundingClientRect();
+    const area = stage.getBoundingClientRect();
+
+    return {
+      x: rect.left + rect.width / 2 - area.left,
+      y: rect.top + rect.height / 2 - area.top
+    };
+  }
+
+  function updatePaths() {
+    svg.replaceChildren();
+
+    if (!linesEnabled || !current) return;
+
+    const key =
+      current.book + " " +
+      current.chapter + ":" +
+      current.verse;
+
+    const links = verseConnections[key] || [];
+    const sourceIndex = names.indexOf(current.book);
+
+    if (sourceIndex < 0 || !links.length) return;
+
+    const source = bookCenter(sourceIndex);
+    const seen = new Set();
+
+    links.forEach(link => {
+      const targetIndex = names.indexOf(link.book);
+
+      if (targetIndex < 0 || targetIndex === sourceIndex) {
+        return;
+      }
+
+      // Draw one path per related book, avoiding duplicates.
+      if (seen.has(targetIndex)) return;
+      seen.add(targetIndex);
+
+      const target = bookCenter(targetIndex);
+
+      // Gentle curvature makes the paths easier to distinguish.
+      const middleX = (source.x + target.x) / 2;
+      const middleY = (source.y + target.y) / 2;
+      const curve = Math.min(
+        45,
+        Math.abs(target.y - source.y) * .12
+      );
+
+      const path = makeSVG("path", {
+        d:
+          `M ${source.x} ${source.y} ` +
+          `Q ${middleX + curve} ${middleY} ` +
+          `${target.x} ${target.y}`,
+        class: "spiral-path thematic"
+      });
+
+      svg.appendChild(path);
+    });
+  }
+
+  function refreshBookEmphasis() {
+    nodes.forEach(node => {
+      node.classList.remove("path-source", "path-related");
+    });
+
+    if (!current) return;
+
+    const key =
+      current.book + " " +
+      current.chapter + ":" +
+      current.verse;
+
+    const sourceIndex = names.indexOf(current.book);
+
+    if (sourceIndex >= 0) {
+      nodes[sourceIndex].classList.add("path-source");
+    }
+
+    (verseConnections[key] || []).forEach(link => {
+      const index = names.indexOf(link.book);
+      if (index >= 0 && index !== sourceIndex) {
+        nodes[index].classList.add("path-related");
+      }
+    });
+  }
+
+  // Extend the working connection-selection function.
+  const originalShow = showConnections;
+
+  showConnections = function (ref) {
+    originalShow(ref);
+    current = ref;
+    refreshBookEmphasis();
+    updatePaths();
+  };
+
+  // Update lines whenever the spiral is redrawn.
+  const originalDraw = draw;
+
+  draw = function () {
+    originalDraw();
+    updatePaths();
+  };
+
+  lineToggle.addEventListener("change", () => {
+    linesEnabled = lineToggle.checked;
+    updatePaths();
+  });
+
+  rotateToggle.addEventListener("change", () => {
+    autoRotate = rotateToggle.checked;
+  });
+
+  // Temporarily pause automatic rotation while dragging.
+  stage.addEventListener("pointerdown", () => {
+    userDragging = true;
+  });
+
+  function stopDragging() {
+    userDragging = false;
+  }
+
+  stage.addEventListener("pointerup", stopDragging);
+  stage.addEventListener("pointercancel", stopDragging);
+  window.addEventListener("pointerup", stopDragging);
+
+  // Gentle continuous movement, limited to about 20 updates/sec.
+  function animate(time) {
+    if (time - previousFrame >= 50) {
+      const elapsed = previousFrame
+        ? Math.min(time - previousFrame, 100)
+        : 50;
+
+      previousFrame = time;
+
+      if (autoRotate && !userDragging &&
+          !document.hidden) {
+        rotation += elapsed * .000035;
+        draw();
+      }
+    }
+
+    requestAnimationFrame(animate);
+  }
+
+  window.addEventListener("resize", updatePaths);
+  requestAnimationFrame(animate);
+
+  refreshBookEmphasis();
+  updatePaths();
+})();
+/* END ANCHOR & WORD v1.2 */
+
 </script>
 </body>
 </html>
