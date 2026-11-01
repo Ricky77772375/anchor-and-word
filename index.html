@@ -314,6 +314,187 @@ stage.addEventListener('wheel',e=>{
 },{passive:false});
 window.addEventListener('resize',draw);
 draw();
+/* ANCHOR & WORD v0.8 — SCRIPTURE READER */
+const scriptureCache = new Map();
+let scriptureRequest = 0;
+let selectedVerse = 0;
+
+const readerStyle = document.createElement("style");
+readerStyle.textContent = `
+  .scripture-reader {
+    margin-top: 14px;
+    max-height: 480px;
+    overflow-y: auto;
+    padding: 12px;
+    background: #07182c;
+    border: 1px solid #405d80;
+    border-radius: 10px;
+  }
+  .scripture-verse {
+    padding: 9px 10px;
+    margin: 3px 0;
+    border-radius: 7px;
+    line-height: 1.85;
+    font-family: Georgia, serif;
+    font-size: 17px;
+    cursor: pointer;
+  }
+  .scripture-verse:hover {
+    background: #203a58;
+  }
+  .scripture-verse.verse-selected {
+    background: #35456a;
+    outline: 1px solid #d9bd7c;
+  }
+  .verse-number {
+    color: #e9c777;
+    font: bold 12px system-ui, sans-serif;
+    margin-right: 8px;
+  }
+  .reader-heading {
+    color: #efd18a;
+    font: 21px Georgia, serif;
+    margin: 4px 0 12px;
+  }
+  .reader-notice {
+    color: #aabbd1;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+`;
+document.head.appendChild(readerStyle);
+
+const reader = document.createElement("div");
+reader.className = "scripture-reader";
+reader.id = "scriptureReader";
+reader.setAttribute("aria-live", "polite");
+reader.innerHTML =
+  '<p class="reader-notice">Select a book and chapter to read Scripture.</p>';
+
+$("chapterInfo").insertAdjacentElement("afterend", reader);
+
+async function loadScripture(bookIndex, chapterNumber) {
+  const requestId = ++scriptureRequest;
+  const bookName = names[bookIndex];
+  const reference = bookName + " " + chapterNumber;
+
+  reader.replaceChildren();
+  const loading = document.createElement("p");
+  loading.className = "reader-notice";
+  loading.textContent = "Loading " + reference + " (WEB)...";
+  reader.appendChild(loading);
+
+  try {
+    const key = reference;
+    let verses = scriptureCache.get(key);
+
+    if (!verses) {
+      const url =
+        "https://bible-api.com/" +
+        encodeURIComponent(reference) +
+        "?translation=web&single_chapter_book_matching=indifferent";
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error("Scripture service unavailable");
+      }
+
+      const data = await response.json();
+      if (!Array.isArray(data.verses) || !data.verses.length) {
+        throw new Error("No verses returned");
+      }
+
+      verses = data.verses;
+      scriptureCache.set(key, verses);
+    }
+
+    if (requestId !== scriptureRequest) return;
+
+    reader.replaceChildren();
+
+    const heading = document.createElement("h3");
+    heading.className = "reader-heading";
+    heading.textContent = reference + " · WEB";
+    reader.appendChild(heading);
+
+    const note = document.createElement("p");
+    note.className = "reader-notice";
+    note.textContent =
+      "World English Bible · Select any verse to highlight it.";
+    reader.appendChild(note);
+
+    verses.forEach(v => {
+      const line = document.createElement("div");
+      line.className = "scripture-verse";
+      line.tabIndex = 0;
+      line.setAttribute("role", "button");
+
+      const number = document.createElement("span");
+      number.className = "verse-number";
+      number.textContent = v.verse;
+
+      const text = document.createElement("span");
+      text.textContent = v.text.trim();
+
+      line.append(number, text);
+
+      const select = () => {
+        reader.querySelectorAll(".scripture-verse")
+          .forEach(el => el.classList.remove("verse-selected"));
+        line.classList.add("verse-selected");
+        selectedVerse = v.verse;
+        $("chapterInfo").textContent =
+          "Selected: " + bookName + " " +
+          chapterNumber + ":" + v.verse + " (WEB)";
+      };
+
+      line.addEventListener("click", select);
+      line.addEventListener("keydown", e => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          select();
+        }
+      });
+
+      reader.appendChild(line);
+    });
+
+    reader.scrollTop = 0;
+  } catch (error) {
+    if (requestId !== scriptureRequest) return;
+    reader.replaceChildren();
+
+    const message = document.createElement("p");
+    message.className = "reader-notice";
+    message.textContent =
+      "Scripture could not be loaded. Check your internet " +
+      "connection and try selecting the chapter again.";
+    reader.appendChild(message);
+  }
+}
+
+/* Extend the existing chapter navigation. */
+const originalChooseChapter = chooseChapter;
+
+chooseChapter = function(n) {
+  if (selected < 0 || n < 1 || n > counts[selected]) return;
+  originalChooseChapter(n);
+  selectedVerse = 0;
+  loadScripture(selected, n);
+};
+
+/* Clear the previous reading when changing books. */
+const originalChooseBook = choose;
+
+choose = function(i) {
+  ++scriptureRequest;
+  originalChooseBook(i);
+  reader.innerHTML =
+    '<p class="reader-notice">Select a chapter to read the World English Bible.</p>';
+};
+
+/* End of v0.8 Scripture Reader upgrade */
+
 </script>
 </body>
 </html>
