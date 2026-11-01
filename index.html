@@ -707,6 +707,48 @@ choose = function(i) {
 
 /* END ANCHOR & WORD v0.9 */
 
+/* ANCHOR & WORD v0.9 — CONNECTION PANEL REPAIR */
+
+/* Move the connections panel above the Scripture reader,
+   so it is easier to see in the right-hand study column. */
+reader.insertAdjacentElement("beforebegin", connectionsPanel);
+
+/* Give the panel a distinct appearance. */
+connectionsPanel.style.display = "block";
+connectionsPanel.style.background = "#152d4a";
+connectionsPanel.style.border = "2px solid #d8b66c";
+connectionsPanel.style.padding = "16px";
+connectionsPanel.style.margin = "15px 0";
+connectionsPanel.style.borderRadius = "12px";
+
+/* Read the verse number directly from the clicked verse.
+   This avoids depending on the order of other click handlers. */
+reader.addEventListener("click", function(event) {
+  const verseElement = event.target.closest(".scripture-verse");
+  if (!verseElement || selected < 0 || chapter < 1) return;
+
+  const numberElement =
+    verseElement.querySelector(".verse-number");
+
+  if (!numberElement) return;
+
+  const verseNumber = Number(numberElement.textContent);
+  if (!Number.isInteger(verseNumber)) return;
+
+  selectedVerse = verseNumber;
+
+  showConnections({
+    book: names[selected],
+    chapter: chapter,
+    verse: verseNumber
+  });
+});
+
+/* Make sure the connection panel is visible initially. */
+showConnections(null);
+
+/* END CONNECTION PANEL REPAIR */
+
 </script>
 </body>
 </html>
