@@ -3,35 +3,106 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Anchor & Word | Scripture Explorer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Anchor & Word | 3D Scripture Explorer</title>
 <style>
+:root{
+  --bg:#061225;--panel:#102440;--gold:#e7c579;
+  --violet:#b8a0f4;--text:#e8edf7;--muted:#a9bad2
+}
 *{box-sizing:border-box}
-body{margin:0;background:#061225;color:#f4e8c9;font:15px system-ui,Arial;overflow-x:hidden}
-header{text-align:center;padding:18px 12px;background:#0b1d36;border-bottom:1px solid #82662e}
-h1{font-family:Georgia,serif;color:#e8c578;margin:0;font-size:27px}
-header p{margin:6px;color:#aebdd2;font-size:12px}
-nav{display:flex;justify-content:center;gap:8px;padding:12px;flex-wrap:wrap}
-button{background:#172c4a;color:#f3d58e;border:1px solid #79613d;border-radius:9px;padding:11px 14px;cursor:pointer;font:inherit}
-button:active,button.active{background:#72551f;color:white}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font:15px system-ui,-apple-system,Arial,sans-serif
+}
+header{
+  text-align:center;padding:19px 12px;
+  background:linear-gradient(#102746,#07172c);
+  border-bottom:1px solid #765f39
+}
+h1{
+  font:normal 30px Georgia,serif;
+  color:var(--gold);margin:0
+}
+header p{font-size:12px;color:var(--muted);margin:7px}
+nav,.controls{
+  display:flex;justify-content:center;flex-wrap:wrap;
+  gap:8px;padding:12px
+}
+button{
+  background:#1a3455;color:#f2d99a;
+  border:1px solid #816a43;border-radius:9px;
+  padding:11px 14px;font:inherit;cursor:pointer;
+  touch-action:manipulation
+}
+button:focus-visible{outline:2px solid white}
+button:active{background:#755724}
 main{max-width:1100px;margin:auto;padding:0 12px}
-#stage{height:470px;position:relative;overflow:hidden;border:1px solid #30496a;border-radius:16px;background:radial-gradient(ellipse at center,#19365c,#071427 75%);touch-action:none;cursor:grab}
+#stage{
+  position:relative;height:540px;overflow:hidden;
+  border:1px solid #355579;border-radius:17px;
+  background:
+    radial-gradient(ellipse at 50% 40%,#254b77,#09192f 70%);
+  touch-action:none;cursor:grab;
+  perspective:900px
+}
 #stage:active{cursor:grabbing}
 #spiral{position:absolute;inset:0;transform-style:preserve-3d}
-.book{position:absolute;left:50%;top:50%;width:100px;height:33px;margin-left:-50px;margin-top:-16px;border:1px solid #a78a4a;border-radius:6px;background:linear-gradient(135deg,#233d61,#111d38);color:#f5d98f;display:flex;align-items:center;justify-content:center;text-align:center;font-size:11px;box-shadow:0 0 12px #c29a3640;cursor:pointer;user-select:none;transition:box-shadow .2s}
-.book.selected{background:#73551f;color:white;box-shadow:0 0 22px #ffd46b}
-#status{text-align:center;padding:10px;color:#9fd3be;font-size:12px}
-.controls{text-align:center;padding:10px}
-.panel{background:#10233e;border:1px solid #395477;border-radius:12px;padding:17px;margin:12px 0}
-.panel h2{color:#f1cd78;margin:0 0 9px;font-family:Georgia,serif}
-.panel p{color:#d3dbe7;line-height:1.6}
-small{color:#9db0cb}
-#booksList{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:7px}
+.book{
+  position:absolute;left:50%;top:50%;
+  width:118px;height:36px;margin:-18px 0 0 -59px;
+  padding:3px 5px;border-radius:7px;
+  background:linear-gradient(135deg,#2c4e74,#122641);
+  border:1px solid #bd9a50;color:#f5dfa4;
+  font-size:11px;text-align:center;
+  box-shadow:0 0 15px #e5bc4d35;
+  display:flex;align-items:center;justify-content:center;
+  user-select:none;white-space:normal;
+  will-change:transform
+}
+.book.new{
+  border-color:#aa8de5;color:#e5d6ff;
+  box-shadow:0 0 14px #9973e544
+}
+.book.selected{
+  background:#8b682c;color:#fff;
+  border:2px solid #ffe4a0;
+  box-shadow:0 0 27px #ffcf62
+}
+#status{
+  text-align:center;color:#9ee0c4;
+  font-size:12px;padding:12px
+}
+.panel{
+  background:var(--panel);border:1px solid #385679;
+  border-radius:13px;padding:18px;margin:12px 0
+}
+.panel h2{
+  font:normal 23px Georgia,serif;
+  color:var(--gold);margin:0 0 10px
+}
+.panel p{line-height:1.6;color:#d3ddec}
+small{color:var(--muted)}
+#booksList{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+  gap:8px
+}
 #booksList button{text-align:left}
-#booksList button.selected{background:#72551f}
-input{width:100%;padding:12px;border-radius:8px;background:#071528;color:white;border:1px solid #557091;margin:10px 0}
-footer{text-align:center;color:#92a5bd;padding:22px;font-size:12px}
-@media(max-width:600px){#stage{height:420px}.book{width:85px;margin-left:-42px;font-size:10px}h1{font-size:24px}}
+#booksList button.active{background:#795b27;color:white}
+input{
+  width:100%;padding:13px;margin:10px 0;
+  border-radius:9px;background:#08172c;color:white;
+  border:1px solid #5a7396;font:inherit
+}
+#library[hidden]{display:none}
+footer{text-align:center;padding:25px;color:#94a7c1;font-size:12px}
+@media(max-width:600px){
+  h1{font-size:25px}
+  #stage{height:450px}
+  .book{width:100px;margin-left:-50px;font-size:10px}
+  button{padding:11px}
+}
 </style>
 </head>
 <body>
@@ -39,112 +110,186 @@ footer{text-align:center;color:#92a5bd;padding:22px;font-size:12px}
 <h1>⚓ Anchor & Word</h1>
 <p>Grounded in Scripture. Brought to life.</p>
 </header>
+
 <nav>
-<button class="active" id="view3d">3D Bible</button>
-<button id="viewBooks">Choose a Book</button>
+<button id="go3d">3D Bible</button>
+<button id="goBooks">Choose a Book</button>
 <button id="reset">Reset View</button>
 </nav>
+
 <main>
-<div id="status">Loading interactive Bible...</div>
-<div id="stage"><div id="spiral"></div></div>
+<div id="status">Loading the 3D Scripture Explorer...</div>
+<div id="stage" aria-label="Rotating 3D Bible books">
+  <div id="spiral"></div>
+</div>
+
 <div class="controls">
 <button id="left">↶ Rotate</button>
 <button id="right">Rotate ↷</button>
 <button id="zin">Zoom +</button>
 <button id="zout">Zoom −</button>
 </div>
+
 <section class="panel">
-<h2 id="chosen">Select a Bible book</h2>
-<p id="details">Drag the spiral to rotate it. Tap a book to explore.</p>
-<small id="counter">66 books · Genesis to Revelation</small>
+<h2 id="chosen">Explore the Bible</h2>
+<p id="details">
+Drag to rotate the spiral. Select a book to discover its place
+in Scripture. Use two fingers to zoom on your phone.
+</p>
+<small id="counter">66 Books · Genesis through Revelation</small>
 </section>
+
 <section class="panel" id="library" hidden>
-<h2>Choose a Book of the Bible</h2>
-<input id="search" placeholder="Search all 66 books">
+<h2>All 66 Books</h2>
+<input id="search" placeholder="Search Bible books">
 <div id="booksList"></div>
 </section>
 </main>
-<footer>Anchor & Word · Interactive Prototype · Version 0.5</footer>
+
+<footer>
+Anchor & Word · 3D Scripture Explorer · Prototype v0.6
+</footer>
+
 <script>
 const names=`Genesis|Exodus|Leviticus|Numbers|Deuteronomy|Joshua|Judges|Ruth|1 Samuel|2 Samuel|1 Kings|2 Kings|1 Chronicles|2 Chronicles|Ezra|Nehemiah|Esther|Job|Psalms|Proverbs|Ecclesiastes|Song of Solomon|Isaiah|Jeremiah|Lamentations|Ezekiel|Daniel|Hosea|Joel|Amos|Obadiah|Jonah|Micah|Nahum|Habakkuk|Zephaniah|Haggai|Zechariah|Malachi|Matthew|Mark|Luke|John|Acts|Romans|1 Corinthians|2 Corinthians|Galatians|Ephesians|Philippians|Colossians|1 Thessalonians|2 Thessalonians|1 Timothy|2 Timothy|Titus|Philemon|Hebrews|James|1 Peter|2 Peter|1 John|2 John|3 John|Jude|Revelation`.split("|");
+
 const chapters=[50,40,27,36,34,24,21,4,31,24,22,25,29,36,10,13,10,42,150,31,12,8,66,52,5,48,12,14,3,9,1,4,7,3,3,3,2,14,4,28,16,24,21,28,16,16,13,6,6,4,4,5,3,6,4,3,1,13,5,5,3,5,1,1,1,22];
-const spiral=document.getElementById("spiral");
+
 const stage=document.getElementById("stage");
+const spiral=document.getElementById("spiral");
 const list=document.getElementById("booksList");
 const status=document.getElementById("status");
-let angle=-0.5,zoom=1,selected=-1;
-let down=false,lastX=0,initialDistance=0;
-const nodes=[];
+const nodes=[],listButtons=[];
+let rotation=-.6,zoom=1,selected=-1;
+let dragging=false,lastX=0,lastDistance=0;
+const pointers=new Map();
+
 names.forEach((name,i)=>{
-const el=document.createElement("button");
-el.className="book";
-el.textContent=name;
-el.onclick=()=>choose(i);
-spiral.appendChild(el);
-nodes.push(el);
-const b=document.createElement("button");
-b.textContent=name;
-b.onclick=()=>choose(i);
-list.appendChild(b);
+  const el=document.createElement("button");
+  el.className="book"+(i>=39?" new":"");
+  el.textContent=name;
+  el.type="button";
+  el.addEventListener("click",()=>selectBook(i));
+  spiral.appendChild(el);
+  nodes.push(el);
+
+  const b=document.createElement("button");
+  b.textContent=name;
+  b.type="button";
+  b.onclick=()=>selectBook(i);
+  list.appendChild(b);
+  listButtons.push(b);
 });
+
 function draw(){
-const w=stage.clientWidth,h=stage.clientHeight;
-const radius=Math.min(w*.28,155)*zoom;
-const spread=Math.min(5.2,h/75)*zoom;
-nodes.forEach((el,i)=>{
-const a=i*.29+angle;
-const x=Math.sin(a)*radius;
-const z=Math.cos(a);
-const y=(i-32.5)*spread;
-const scale=.65+Math.max(0,z)*.48;
-el.style.transform=`translate3d(${x}px,${y}px,0) scale(${scale})`;
-el.style.opacity=.35+.65*(z+1)/2;
-el.style.zIndex=Math.round((z+1)*100);
-el.classList.toggle("selected",i===selected);
-});
+  const w=stage.clientWidth;
+  const h=stage.clientHeight;
+  const radius=Math.min(w*.31,175)*zoom;
+  const step=Math.min(6.6,h/69)*zoom;
+
+  nodes.forEach((el,i)=>{
+    // Ordered descending spiral, Genesis through Revelation.
+    const a=i*.31+rotation;
+    const x=Math.sin(a)*radius;
+    const depth=Math.cos(a);
+    const y=(i-32.5)*step;
+    const scale=.72+Math.max(0,depth)*.38;
+    const z=depth*95*zoom;
+
+    el.style.transform=
+      `translate3d(${x}px,${y}px,${z}px) scale(${scale})`;
+    el.style.opacity=.43+.57*(depth+1)/2;
+    el.style.zIndex=String(Math.round((depth+1)*100));
+    el.classList.toggle("selected",i===selected);
+  });
 }
-function choose(i){
-selected=i;
-document.getElementById("chosen").textContent=names[i];
-document.getElementById("details").textContent=
-`${names[i]} is book ${i+1} of 66, in the ${i<39?"Old":"New"} Testament. Select it in the spiral or the book list to explore its place in Scripture.`;
-document.getElementById("counter").textContent=
-`${chapters[i]} chapters · ${i<39?"Old":"New"} Testament · Book ${i+1} of 66`;
-status.textContent=`Selected: ${names[i]}`;
-draw();
+
+function selectBook(i){
+  selected=i;
+  const name=names[i];
+  const testament=i<39?"Old Testament":"New Testament";
+
+  document.getElementById("chosen").textContent=name;
+  document.getElementById("details").textContent=
+    `${name} is book ${i+1} of 66 in the ${testament}. `+
+    `It contains ${chapters[i]} chapters. `+
+    `The Scripture reader and connections will be added next.`;
+  document.getElementById("counter").textContent=
+    `${chapters[i]} chapters · ${testament} · Book ${i+1} of 66`;
+
+  listButtons.forEach((b,j)=>b.classList.toggle("active",j===i));
+  status.textContent=`Selected: ${name}`;
+  draw();
 }
-function rotate(d){angle+=d;draw()}
-document.getElementById("left").onclick=()=>rotate(-.28);
-document.getElementById("right").onclick=()=>rotate(.28);
-document.getElementById("zin").onclick=()=>{zoom=Math.min(1.7,zoom+.12);draw()};
-document.getElementById("zout").onclick=()=>{zoom=Math.max(.55,zoom-.12);draw()};
-document.getElementById("reset").onclick=()=>{angle=-.5;zoom=1;draw()};
-document.getElementById("viewBooks").onclick=()=>{
-document.getElementById("library").hidden=false;
-document.getElementById("library").scrollIntoView({behavior:"smooth"});
+
+function rotate(delta){
+  rotation+=delta;
+  draw();
+}
+function changeZoom(delta){
+  zoom=Math.max(.55,Math.min(1.65,zoom+delta));
+  draw();
+}
+document.getElementById("left").onclick=()=>rotate(-.3);
+document.getElementById("right").onclick=()=>rotate(.3);
+document.getElementById("zin").onclick=()=>changeZoom(.12);
+document.getElementById("zout").onclick=()=>changeZoom(-.12);
+document.getElementById("reset").onclick=()=>{
+  rotation=-.6;zoom=1;draw();
+  status.textContent="View reset";
 };
-document.getElementById("view3d").onclick=()=>stage.scrollIntoView({behavior:"smooth"});
+document.getElementById("goBooks").onclick=()=>{
+  document.getElementById("library").hidden=false;
+  document.getElementById("library").scrollIntoView({behavior:"smooth"});
+};
+document.getElementById("go3d").onclick=()=>{
+  stage.scrollIntoView({behavior:"smooth"});
+};
 document.getElementById("search").oninput=e=>{
-const q=e.target.value.toLowerCase();
-[...list.children].forEach(b=>b.hidden=!b.textContent.toLowerCase().includes(q));
+  const q=e.target.value.toLowerCase();
+  listButtons.forEach(b=>{
+    b.hidden=!b.textContent.toLowerCase().includes(q);
+  });
 };
+
+function distance(){
+  const p=[...pointers.values()];
+  return Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
+}
 stage.addEventListener("pointerdown",e=>{
-if(e.target.closest(".book"))return;
-down=true;lastX=e.clientX;
-stage.setPointerCapture(e.pointerId);
+  if(e.target.closest(".book"))return;
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  lastX=e.clientX;
+  if(pointers.size===2)lastDistance=distance();
+  stage.setPointerCapture(e.pointerId);
 });
 stage.addEventListener("pointermove",e=>{
-if(!down)return;
-angle+=(e.clientX-lastX)*.012;
-lastX=e.clientX;draw();
+  if(!pointers.has(e.pointerId))return;
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pointers.size===2){
+    const d=distance();
+    if(lastDistance)changeZoom((d-lastDistance)*.003);
+    lastDistance=d;
+  }else if(pointers.size===1){
+    rotate((e.clientX-lastX)*.012);
+    lastX=e.clientX;
+  }
 });
-stage.addEventListener("pointerup",()=>down=false);
-stage.addEventListener("pointercancel",()=>down=false);
+function endPointer(e){
+  pointers.delete(e.pointerId);
+  lastDistance=0;
+  if(pointers.size===1){
+    lastX=[...pointers.values()][0].x;
+  }
+}
+stage.addEventListener("pointerup",endPointer);
+stage.addEventListener("pointercancel",endPointer);
+stage.addEventListener("lostpointercapture",endPointer);
 stage.addEventListener("wheel",e=>{
-e.preventDefault();
-zoom=Math.max(.55,Math.min(1.7,zoom-e.deltaY*.001));
-draw();
+  e.preventDefault();
+  changeZoom(-e.deltaY*.001);
 },{passive:false});
+
 window.addEventListener("resize",draw);
 draw();
 status.textContent="Interactive controls ready ✓";
