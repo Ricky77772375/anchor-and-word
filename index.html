@@ -922,6 +922,156 @@ showConnections(null);
   draw(null);
 })();
 
+/* ANCHOR & WORD v1.1 — ILLUMINATED 3D CONNECTIONS */
+(function () {
+  "use strict";
+
+  const style = document.createElement("style");
+  style.textContent = `
+    .book.connection-source {
+      border: 2px solid #ffe29a !important;
+      background: linear-gradient(135deg,#96713b,#513a1e) !important;
+      color: white !important;
+      box-shadow: 0 0 27px #ffd36e !important;
+    }
+    .book.connection-related {
+      border: 2px solid #d0b0ff !important;
+      background: linear-gradient(135deg,#66538e,#342b58) !important;
+      color: white !important;
+      box-shadow: 0 0 24px #ad8bff !important;
+    }
+    .book.connection-dimmed {
+      opacity: .22 !important;
+      filter: saturate(.5);
+    }
+    .connection-toolbar {
+      margin: 12px 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+    .connection-toolbar label {
+      color: #efd18a;
+      font-size: 12px;
+    }
+    .connection-toolbar input {
+      width: auto;
+      accent-color: #d6b56f;
+    }
+    .connection-summary {
+      font-size: 12px;
+      color: #c4d1e4;
+    }
+  `;
+  document.head.appendChild(style);
+
+  let activeReference = null;
+  let highlightingEnabled = true;
+
+  const toolbar = document.createElement("div");
+  toolbar.className = "connection-toolbar";
+
+  const toggle = document.createElement("input");
+  toggle.type = "checkbox";
+  toggle.checked = true;
+  toggle.id = "highlightConnections";
+
+  const label = document.createElement("label");
+  label.htmlFor = toggle.id;
+  label.textContent = "Illuminate connected books";
+
+  const summary = document.createElement("span");
+  summary.className = "connection-summary";
+  summary.textContent = "Select a verse to highlight connections.";
+
+  toolbar.append(toggle, label, summary);
+  stage.insertAdjacentElement("afterend", toolbar);
+
+  function updateSpiral() {
+    nodes.forEach((node, i) => {
+      node.classList.remove(
+        "connection-source",
+        "connection-related",
+        "connection-dimmed"
+      );
+
+      if (!highlightingEnabled || !activeReference) {
+        return;
+      }
+
+      const key =
+        activeReference.book + " " +
+        activeReference.chapter + ":" +
+        activeReference.verse;
+
+      const related = verseConnections[key] || [];
+      const relatedBooks = new Set(
+        related.map(item => item.book)
+      );
+
+      if (names[i] === activeReference.book) {
+        node.classList.add("connection-source");
+      } else if (relatedBooks.has(names[i])) {
+        node.classList.add("connection-related");
+      } else {
+        node.classList.add("connection-dimmed");
+      }
+    });
+  }
+
+  function updateSummary() {
+    if (!activeReference) {
+      summary.textContent =
+        "Select a verse to highlight connections.";
+      return;
+    }
+
+    const key =
+      activeReference.book + " " +
+      activeReference.chapter + ":" +
+      activeReference.verse;
+
+    const related = verseConnections[key] || [];
+    const count = new Set(
+      related.map(item => item.book)
+    ).size;
+
+    summary.textContent = count
+      ? count + " related book(s) illuminated for " + key
+      : "No curated connections for " + key + " yet.";
+  }
+
+  const previousShow = showConnections;
+
+  showConnections = function (ref) {
+    previousShow(ref);
+    activeReference = ref;
+    updateSpiral();
+    updateSummary();
+  };
+
+  toggle.addEventListener("change", () => {
+    highlightingEnabled = toggle.checked;
+    updateSpiral();
+  });
+
+  /*
+    Keep highlights correct after rotation, zoom,
+    resizing, or selection changes.
+  */
+  const previousDraw = draw;
+
+  draw = function () {
+    previousDraw();
+    updateSpiral();
+  };
+
+  updateSpiral();
+  updateSummary();
+})();
+/* END v1.1 */
+
 </script>
 </body>
 </html>
