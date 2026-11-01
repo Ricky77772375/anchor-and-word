@@ -495,6 +495,218 @@ choose = function(i) {
 
 /* End of v0.8 Scripture Reader upgrade */
 
+/* ANCHOR & WORD v0.9 — SCRIPTURE CONNECTIONS */
+
+/*
+  Initial curated thematic relationships.
+  These are study connections, not claims that
+  one passage directly quotes another.
+*/
+const verseConnections = {
+  "Genesis 1:1": [
+    {book:"John", chapter:1, verse:1, note:"The Word in the beginning"},
+    {book:"Hebrews", chapter:11, verse:3, note:"Creation through God's word"},
+    {book:"Colossians", chapter:1, verse:16, note:"Creation through Christ"},
+    {book:"Psalms", chapter:33, verse:6, note:"Creation by the word of the LORD"}
+  ],
+  "John 1:1": [
+    {book:"Genesis", chapter:1, verse:1, note:"In the beginning"},
+    {book:"John", chapter:1, verse:3, note:"All things made through Him"}
+  ],
+  "Genesis 1:3": [
+    {book:"2 Corinthians", chapter:4, verse:6, note:"Light shining out of darkness"}
+  ],
+  "Isaiah 53:5": [
+    {book:"1 Peter", chapter:2, verse:24, note:"Healing through His wounds"}
+  ],
+  "Ephesians 6:11": [
+    {book:"Ephesians", chapter:6, verse:13, note:"The whole armor of God"}
+  ]
+};
+
+const connectionStyle = document.createElement("style");
+connectionStyle.textContent = `
+.connection-panel {
+  margin-top: 15px;
+  padding: 13px;
+  border: 1px solid #987e4a;
+  border-radius: 10px;
+  background: #0c2038;
+}
+.connection-panel h3 {
+  color: #efd18a;
+  margin: 0 0 9px;
+  font: 20px Georgia, serif;
+}
+.connection-panel button {
+  display: block;
+  width: 100%;
+  margin: 7px 0;
+  text-align: left;
+}
+.connection-panel p {
+  color: #afc0d6;
+  font-size: 12px;
+  line-height: 1.6;
+}
+`;
+document.head.appendChild(connectionStyle);
+
+const connectionsPanel = document.createElement("div");
+connectionsPanel.className = "connection-panel";
+connectionsPanel.innerHTML =
+  "<h3>Scripture Connections</h3>" +
+  "<p>Select a verse to explore related passages.</p>";
+
+reader.insertAdjacentElement("afterend", connectionsPanel);
+
+const connectionHistory = [];
+
+function currentReference() {
+  if (selected < 0 || chapter < 1 || selectedVerse < 1) {
+    return null;
+  }
+  return {
+    book: names[selected],
+    chapter: chapter,
+    verse: selectedVerse
+  };
+}
+
+function showConnections(ref) {
+  connectionsPanel.replaceChildren();
+
+  const title = document.createElement("h3");
+  title.textContent = "Scripture Connections";
+  connectionsPanel.appendChild(title);
+
+  if (!ref) {
+    const hint = document.createElement("p");
+    hint.textContent =
+      "Select a verse to explore related passages.";
+    connectionsPanel.appendChild(hint);
+    return;
+  }
+
+  const key = ref.book + " " + ref.chapter + ":" + ref.verse;
+  const heading = document.createElement("p");
+  heading.textContent = "Selected: " + key;
+  connectionsPanel.appendChild(heading);
+
+  const related = verseConnections[key] || [];
+
+  if (!related.length) {
+    const empty = document.createElement("p");
+    empty.textContent =
+      "No curated connections have been added for this verse yet.";
+    connectionsPanel.appendChild(empty);
+  }
+
+  related.forEach(item => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent =
+      item.book + " " + item.chapter + ":" +
+      item.verse + " — " + item.note;
+
+    button.onclick = () => {
+      connectionHistory.push(ref);
+      openConnectedVerse(item);
+    };
+
+    connectionsPanel.appendChild(button);
+  });
+
+  if (connectionHistory.length) {
+    const back = document.createElement("button");
+    back.type = "button";
+    back.textContent = "← Back to previous verse";
+    back.onclick = () => {
+      const previous = connectionHistory.pop();
+      openConnectedVerse(previous);
+    };
+    connectionsPanel.appendChild(back);
+  }
+
+  const note = document.createElement("p");
+  note.textContent =
+    "Connections shown here are curated study relationships. " +
+    "They are not automatically direct quotations or prophecies.";
+  connectionsPanel.appendChild(note);
+}
+
+function openConnectedVerse(ref) {
+  const index = names.indexOf(ref.book);
+  if (index < 0) return;
+
+  choose(index);
+  chooseChapter(ref.chapter);
+
+  /*
+    Wait for the asynchronous Scripture reader to
+    finish loading, then select the requested verse.
+  */
+  const expected =
+    ref.book + " " + ref.chapter + " · WEB";
+
+  const selectWhenReady = () => {
+    const heading = reader.querySelector(".reader-heading");
+    if (!heading || heading.textContent !== expected) {
+      return false;
+    }
+
+    const verses = reader.querySelectorAll(".scripture-verse");
+    const target = [...verses].find(el =>
+      Number(el.querySelector(".verse-number")?.textContent) === ref.verse
+    );
+
+    if (!target) return false;
+
+    target.click();
+    target.scrollIntoView({
+      behavior:"smooth",
+      block:"center"
+    });
+    return true;
+  };
+
+  if (!selectWhenReady()) {
+    const observer = new MutationObserver(() => {
+      if (selectWhenReady()) observer.disconnect();
+    });
+    observer.observe(reader, {
+      childList:true,
+      subtree:true
+    });
+    setTimeout(() => observer.disconnect(), 12000);
+  }
+}
+
+/* Listen for selections in the existing verse reader. */
+reader.addEventListener("click", event => {
+  if (!event.target.closest(".scripture-verse")) return;
+
+  // The v0.8 click handler has already set selectedVerse.
+  const ref = currentReference();
+  if (ref) showConnections(ref);
+});
+
+/* Reset the connection display on chapter changes. */
+const v09ChooseChapter = chooseChapter;
+chooseChapter = function(n) {
+  v09ChooseChapter(n);
+  showConnections(null);
+};
+
+/* Reset it on book changes as well. */
+const v09ChooseBook = choose;
+choose = function(i) {
+  v09ChooseBook(i);
+  showConnections(null);
+};
+
+/* END ANCHOR & WORD v0.9 */
+
 </script>
 </body>
 </html>
