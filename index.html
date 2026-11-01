@@ -3,296 +3,317 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Anchor & Word | 3D Scripture Explorer</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Anchor & Word — Scripture Explorer v0.7</title>
 <style>
-:root{
-  --bg:#061225;--panel:#102440;--gold:#e7c579;
-  --violet:#b8a0f4;--text:#e8edf7;--muted:#a9bad2
-}
+:root{--bg:#061121;--panel:#10243d;--line:#345171;--gold:#efd18a;--ink:#e9eef7;--muted:#aabbd1}
 *{box-sizing:border-box}
-body{
-  margin:0;background:var(--bg);color:var(--text);
-  font:15px system-ui,-apple-system,Arial,sans-serif
+body{margin:0;background:var(--bg);color:var(--ink);font:14px system-ui,Segoe UI,sans-serif}
+header{padding:15px 22px;background:#142e4b;border-bottom:1px solid #75613c;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+h1{font:normal 28px Georgia,serif;color:var(--gold);margin:0}
+small,.subtle{color:var(--muted)}
+button,input{font:inherit}
+button{border:1px solid #6b7791;background:#1c3654;color:#f4dfad;border-radius:8px;padding:9px 11px;cursor:pointer}
+button:hover{background:#2b4b70}
+button:focus-visible,input:focus-visible{outline:2px solid #f7d78a}
+button.active,button[aria-pressed=true]{background:#6b522d;color:white;border-color:#e7c77c}
+.workspace{display:grid;grid-template-columns:230px minmax(0,1fr) 295px;gap:12px;padding:12px;max-width:1600px;margin:auto}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;min-width:0;padding:14px}
+.panel h2{font:normal 21px Georgia,serif;color:var(--gold);margin:2px 0 12px}
+.panel h3{font-size:13px;color:var(--gold);margin:18px 0 8px}
+.stack{display:grid;gap:7px}
+.stack button{text-align:left}
+.subtle{font-size:12px;line-height:1.55}
+.topline{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.tools{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}
+.stage{height:min(68vh,690px);min-height:410px;position:relative;overflow:hidden;border:1px solid #416184;border-radius:13px;background:radial-gradient(ellipse at 50% 43%,#264c75,#112743 44%,#07182d 85%);perspective:1000px;touch-action:none;cursor:grab}
+.spiral{position:absolute;inset:0;transform-style:preserve-3d}
+.book{position:absolute;top:50%;left:50%;width:126px;height:35px;margin:-17px 0 0 -63px;display:flex;justify-content:center;align-items:center;padding:2px 5px;text-align:center;font-size:11px;background:linear-gradient(135deg,#345879,#132c48);border:1px solid #d7b66a;color:#ffe5a4;border-radius:6px;box-shadow:0 0 13px #cda84c30;user-select:none;will-change:transform}
+.book.nt{border-color:#b69bf3;color:#e6d8ff}
+.book.chosen{background:#8b672d;color:white;border:2px solid #ffe9ad;box-shadow:0 0 23px #f9cb63}
+.legend{display:flex;justify-content:center;gap:18px;margin-top:10px;color:var(--muted);font-size:12px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;background:#e3c47e}
+.dot.nt{background:#b79cf0}
+.chapters{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;max-height:250px;overflow:auto}
+.chapters button{text-align:center;padding:9px 3px}
+.info{background:#0b1b31;border:1px solid #314d6b;border-radius:9px;padding:12px;margin-top:12px;line-height:1.55}
+input{width:100%;background:#08182c;color:white;border:1px solid #536c89;border-radius:8px;padding:10px}
+.booklist{max-height:340px;overflow:auto;margin-top:9px}
+.booklist button{width:100%;margin-bottom:5px;text-align:left}
+.hidden,[hidden]{display:none!important}
+.collapsed .sidebar,.readerCollapsed .inspector{display:none}
+.collapsed{grid-template-columns:minmax(0,1fr) 295px}
+.readerCollapsed{grid-template-columns:230px minmax(0,1fr)}
+.collapsed.readerCollapsed{grid-template-columns:minmax(0,1fr)}
+footer{text-align:center;color:#8298b4;padding:15px;font-size:12px}
+@media(max-width:1050px){
+.workspace{grid-template-columns:190px minmax(0,1fr)}
+.inspector{grid-column:1/-1}
+.collapsed{grid-template-columns:minmax(0,1fr)}
+.readerCollapsed{grid-template-columns:190px minmax(0,1fr)}
+.collapsed.readerCollapsed{grid-template-columns:minmax(0,1fr)}
 }
-header{
-  text-align:center;padding:19px 12px;
-  background:linear-gradient(#102746,#07172c);
-  border-bottom:1px solid #765f39
-}
-h1{
-  font:normal 30px Georgia,serif;
-  color:var(--gold);margin:0
-}
-header p{font-size:12px;color:var(--muted);margin:7px}
-nav,.controls{
-  display:flex;justify-content:center;flex-wrap:wrap;
-  gap:8px;padding:12px
-}
-button{
-  background:#1a3455;color:#f2d99a;
-  border:1px solid #816a43;border-radius:9px;
-  padding:11px 14px;font:inherit;cursor:pointer;
-  touch-action:manipulation
-}
-button:focus-visible{outline:2px solid white}
-button:active{background:#755724}
-main{max-width:1100px;margin:auto;padding:0 12px}
-#stage{
-  position:relative;height:540px;overflow:hidden;
-  border:1px solid #355579;border-radius:17px;
-  background:
-    radial-gradient(ellipse at 50% 40%,#254b77,#09192f 70%);
-  touch-action:none;cursor:grab;
-  perspective:900px
-}
-#stage:active{cursor:grabbing}
-#spiral{position:absolute;inset:0;transform-style:preserve-3d}
-.book{
-  position:absolute;left:50%;top:50%;
-  width:118px;height:36px;margin:-18px 0 0 -59px;
-  padding:3px 5px;border-radius:7px;
-  background:linear-gradient(135deg,#2c4e74,#122641);
-  border:1px solid #bd9a50;color:#f5dfa4;
-  font-size:11px;text-align:center;
-  box-shadow:0 0 15px #e5bc4d35;
-  display:flex;align-items:center;justify-content:center;
-  user-select:none;white-space:normal;
-  will-change:transform
-}
-.book.new{
-  border-color:#aa8de5;color:#e5d6ff;
-  box-shadow:0 0 14px #9973e544
-}
-.book.selected{
-  background:#8b682c;color:#fff;
-  border:2px solid #ffe4a0;
-  box-shadow:0 0 27px #ffcf62
-}
-#status{
-  text-align:center;color:#9ee0c4;
-  font-size:12px;padding:12px
-}
-.panel{
-  background:var(--panel);border:1px solid #385679;
-  border-radius:13px;padding:18px;margin:12px 0
-}
-.panel h2{
-  font:normal 23px Georgia,serif;
-  color:var(--gold);margin:0 0 10px
-}
-.panel p{line-height:1.6;color:#d3ddec}
-small{color:var(--muted)}
-#booksList{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
-  gap:8px
-}
-#booksList button{text-align:left}
-#booksList button.active{background:#795b27;color:white}
-input{
-  width:100%;padding:13px;margin:10px 0;
-  border-radius:9px;background:#08172c;color:white;
-  border:1px solid #5a7396;font:inherit
-}
-#library[hidden]{display:none}
-footer{text-align:center;padding:25px;color:#94a7c1;font-size:12px}
-@media(max-width:600px){
-  h1{font-size:25px}
-  #stage{height:450px}
-  .book{width:100px;margin-left:-50px;font-size:10px}
-  button{padding:11px}
+@media(max-width:650px){
+header{padding:12px}h1{font-size:23px}
+.workspace,.collapsed,.readerCollapsed,.collapsed.readerCollapsed{display:flex;flex-direction:column;padding:8px}
+.stage{height:460px;min-height:460px}
+.book{width:104px;margin-left:-52px;font-size:10px}
+.panel{padding:11px}
+.chapters{grid-template-columns:repeat(6,minmax(0,1fr))}
 }
 </style>
 </head>
 <body>
 <header>
-<h1>⚓ Anchor & Word</h1>
-<p>Grounded in Scripture. Brought to life.</p>
+<div><h1>⚓ Anchor & Word</h1>
+<small>Grounded in Scripture. Brought to life.</small></div>
+<small>Scripture Explorer · Desktop v0.7</small>
 </header>
 
-<nav>
-<button id="go3d">3D Bible</button>
-<button id="goBooks">Choose a Book</button>
-<button id="reset">Reset View</button>
-</nav>
-
-<main>
-<div id="status">Loading the 3D Scripture Explorer...</div>
-<div id="stage" aria-label="Rotating 3D Bible books">
-  <div id="spiral"></div>
+<div class="workspace" id="workspace">
+<aside class="panel sidebar">
+<h2>Explore</h2>
+<div class="stack" id="sections">
+<button data-mode="books" aria-pressed="true">📖 Books of the Bible</button>
+<button data-mode="people">👥 People</button>
+<button data-mode="places">🗺️ Places</button>
+<button data-mode="themes">✦ Themes</button>
+<button data-mode="prophecy">✧ Prophecy</button>
+<button data-mode="timeline">◷ Timeline</button>
 </div>
+<h3>Find a book</h3>
+<input id="search" placeholder="Search all 66 books">
+<div class="booklist" id="booklist"></div>
+<p class="subtle">Additional study layers are planned features.</p>
+</aside>
 
-<div class="controls">
+<main class="panel">
+<div class="topline">
+<h2>3D Bible Spiral</h2>
+<div class="tools">
+<button id="toggleNav">Hide navigation</button>
+<button id="toggleInfo">Hide study panel</button>
+</div>
+</div>
+<p class="subtle" id="status">Drag the spiral to rotate. Select a book.</p>
+<div class="stage" id="stage">
+<div class="spiral" id="spiral"></div>
+</div>
+<div class="legend">
+<span><i class="dot"></i>Old Testament</span>
+<span><i class="dot nt"></i>New Testament</span>
+</div>
+<div class="tools" style="justify-content:center">
 <button id="left">↶ Rotate</button>
 <button id="right">Rotate ↷</button>
-<button id="zin">Zoom +</button>
-<button id="zout">Zoom −</button>
+<button id="zoomIn">Zoom +</button>
+<button id="zoomOut">Zoom −</button>
+<button id="reset">Reset view</button>
 </div>
-
-<section class="panel">
-<h2 id="chosen">Explore the Bible</h2>
-<p id="details">
-Drag to rotate the spiral. Select a book to discover its place
-in Scripture. Use two fingers to zoom on your phone.
+<p class="subtle" style="text-align:center">
+Drag to rotate; use buttons, mouse wheel, or pinch to zoom.
 </p>
-<small id="counter">66 Books · Genesis through Revelation</small>
-</section>
-
-<section class="panel" id="library" hidden>
-<h2>All 66 Books</h2>
-<input id="search" placeholder="Search Bible books">
-<div id="booksList"></div>
-</section>
 </main>
 
-<footer>
-Anchor & Word · 3D Scripture Explorer · Prototype v0.6
-</footer>
+<aside class="panel inspector" id="inspector">
+<h2 id="bookTitle">Scripture Study</h2>
+<p class="subtle" id="bookMeta">Choose a book from the spiral or navigation list.</p>
+<h3>Chapters</h3>
+<div class="chapters" id="chapters">
+<p class="subtle">Chapter selection appears here.</p>
+</div>
+<div class="info" id="chapterInfo">
+Select a book to begin exploring its chapters.
+</div>
+<div class="tools">
+<button id="previous" disabled>← Previous</button>
+<button id="next" disabled>Next →</button>
+</div>
+<h3>Connections</h3>
+<p class="subtle">
+Verified cross-references, people, places, and themes will appear in a future release.
+</p>
+</aside>
+</div>
+<footer>Anchor & Word · Prototype v0.7</footer>
 
 <script>
-const names=`Genesis|Exodus|Leviticus|Numbers|Deuteronomy|Joshua|Judges|Ruth|1 Samuel|2 Samuel|1 Kings|2 Kings|1 Chronicles|2 Chronicles|Ezra|Nehemiah|Esther|Job|Psalms|Proverbs|Ecclesiastes|Song of Solomon|Isaiah|Jeremiah|Lamentations|Ezekiel|Daniel|Hosea|Joel|Amos|Obadiah|Jonah|Micah|Nahum|Habakkuk|Zephaniah|Haggai|Zechariah|Malachi|Matthew|Mark|Luke|John|Acts|Romans|1 Corinthians|2 Corinthians|Galatians|Ephesians|Philippians|Colossians|1 Thessalonians|2 Thessalonians|1 Timothy|2 Timothy|Titus|Philemon|Hebrews|James|1 Peter|2 Peter|1 John|2 John|3 John|Jude|Revelation`.split("|");
+'use strict';
+const names=`Genesis|Exodus|Leviticus|Numbers|Deuteronomy|Joshua|Judges|Ruth|1 Samuel|2 Samuel|1 Kings|2 Kings|1 Chronicles|2 Chronicles|Ezra|Nehemiah|Esther|Job|Psalms|Proverbs|Ecclesiastes|Song of Solomon|Isaiah|Jeremiah|Lamentations|Ezekiel|Daniel|Hosea|Joel|Amos|Obadiah|Jonah|Micah|Nahum|Habakkuk|Zephaniah|Haggai|Zechariah|Malachi|Matthew|Mark|Luke|John|Acts|Romans|1 Corinthians|2 Corinthians|Galatians|Ephesians|Philippians|Colossians|1 Thessalonians|2 Thessalonians|1 Timothy|2 Timothy|Titus|Philemon|Hebrews|James|1 Peter|2 Peter|1 John|2 John|3 John|Jude|Revelation`.split('|');
 
-const chapters=[50,40,27,36,34,24,21,4,31,24,22,25,29,36,10,13,10,42,150,31,12,8,66,52,5,48,12,14,3,9,1,4,7,3,3,3,2,14,4,28,16,24,21,28,16,16,13,6,6,4,4,5,3,6,4,3,1,13,5,5,3,5,1,1,1,22];
+const counts=[50,40,27,36,34,24,21,4,31,24,22,25,29,36,10,13,10,42,150,31,12,8,66,52,5,48,12,14,3,9,1,4,7,3,3,3,2,14,4,28,16,24,21,28,16,16,13,6,6,4,4,5,3,6,4,3,1,13,5,5,3,5,1,1,1,22];
 
-const stage=document.getElementById("stage");
-const spiral=document.getElementById("spiral");
-const list=document.getElementById("booksList");
-const status=document.getElementById("status");
+const $=id=>document.getElementById(id);
+const stage=$('stage'),spiral=$('spiral');
 const nodes=[],listButtons=[];
-let rotation=-.6,zoom=1,selected=-1;
-let dragging=false,lastX=0,lastDistance=0;
+let rotation=-.6,zoom=1,selected=-1,chapter=0;
 const pointers=new Map();
+let lastX=0,lastDistance=0,moved=false,suppressClickUntil=0;
 
 names.forEach((name,i)=>{
-  const el=document.createElement("button");
-  el.className="book"+(i>=39?" new":"");
-  el.textContent=name;
-  el.type="button";
-  el.addEventListener("click",()=>selectBook(i));
-  spiral.appendChild(el);
-  nodes.push(el);
+ const b=document.createElement('button');
+ b.type='button';
+ b.className='book'+(i>=39?' nt':'');
+ b.textContent=name;
+ b.onclick=()=>{
+   if(Date.now()<suppressClickUntil)return;
+   choose(i);
+ };
+ spiral.appendChild(b);
+ nodes.push(b);
 
-  const b=document.createElement("button");
-  b.textContent=name;
-  b.type="button";
-  b.onclick=()=>selectBook(i);
-  list.appendChild(b);
-  listButtons.push(b);
+ const row=document.createElement('button');
+ row.type='button';
+ row.textContent=(i+1)+'. '+name;
+ row.onclick=()=>{
+   choose(i);
+   if(innerWidth<651)
+     $('inspector').scrollIntoView({behavior:'smooth'});
+ };
+ $('booklist').appendChild(row);
+ listButtons.push(row);
 });
 
 function draw(){
-  const w=stage.clientWidth;
-  const h=stage.clientHeight;
-  const radius=Math.min(w*.31,175)*zoom;
-  const step=Math.min(6.6,h/69)*zoom;
-
-  nodes.forEach((el,i)=>{
-    // Ordered descending spiral, Genesis through Revelation.
-    const a=i*.31+rotation;
-    const x=Math.sin(a)*radius;
-    const depth=Math.cos(a);
-    const y=(i-32.5)*step;
-    const scale=.72+Math.max(0,depth)*.38;
-    const z=depth*95*zoom;
-
-    el.style.transform=
-      `translate3d(${x}px,${y}px,${z}px) scale(${scale})`;
-    el.style.opacity=.43+.57*(depth+1)/2;
-    el.style.zIndex=String(Math.round((depth+1)*100));
-    el.classList.toggle("selected",i===selected);
-  });
+ const w=stage.clientWidth,h=stage.clientHeight;
+ const r=Math.min(w*.3,190)*zoom;
+ const step=Math.min(7.4,h/68)*zoom;
+ nodes.forEach((b,i)=>{
+   const a=i*.31+rotation;
+   const depth=Math.cos(a);
+   const x=Math.sin(a)*r;
+   const y=(i-32.5)*step;
+   const z=depth*95*zoom;
+   const scale=.72+Math.max(0,depth)*.4;
+   b.style.transform=`translate3d(${x}px,${y}px,${z}px) scale(${scale})`;
+   b.style.opacity=String(.45+.55*(depth+1)/2);
+   b.style.zIndex=String(Math.round((depth+1)*100));
+   b.classList.toggle('chosen',i===selected);
+ });
 }
 
-function selectBook(i){
-  selected=i;
-  const name=names[i];
-  const testament=i<39?"Old Testament":"New Testament";
-
-  document.getElementById("chosen").textContent=name;
-  document.getElementById("details").textContent=
-    `${name} is book ${i+1} of 66 in the ${testament}. `+
-    `It contains ${chapters[i]} chapters. `+
-    `The Scripture reader and connections will be added next.`;
-  document.getElementById("counter").textContent=
-    `${chapters[i]} chapters · ${testament} · Book ${i+1} of 66`;
-
-  listButtons.forEach((b,j)=>b.classList.toggle("active",j===i));
-  status.textContent=`Selected: ${name}`;
-  draw();
+function choose(i){
+ selected=i;chapter=0;
+ $('bookTitle').textContent=names[i];
+ $('bookMeta').textContent=
+ `Book ${i+1} of 66 · ${i<39?'Old':'New'} Testament · ${counts[i]} chapters`;
+ $('chapters').replaceChildren();
+ for(let n=1;n<=counts[i];n++){
+   const b=document.createElement('button');
+   b.type='button';
+   b.textContent=n;
+   b.onclick=()=>chooseChapter(n);
+   $('chapters').appendChild(b);
+ }
+ $('chapterInfo').textContent=
+ 'Select a chapter to see its reference. Full Scripture text will be integrated in the next release.';
+ $('previous').disabled=true;
+ $('next').disabled=true;
+ listButtons.forEach((b,j)=>b.classList.toggle('active',j===i));
+ $('status').textContent='Selected '+names[i]+' — choose a chapter.';
+ draw();
 }
 
-function rotate(delta){
-  rotation+=delta;
-  draw();
+function chooseChapter(n){
+ if(selected<0)return;
+ chapter=n;
+ [...$('chapters').children].forEach((b,j)=>
+   b.classList.toggle('active',j===n-1)
+ );
+ $('chapterInfo').textContent=
+ `${names[selected]} ${n} · Chapter selected. Scripture text has not yet been imported.`;
+ $('previous').disabled=n===1;
+ $('next').disabled=n===counts[selected];
 }
-function changeZoom(delta){
-  zoom=Math.max(.55,Math.min(1.65,zoom+delta));
-  draw();
+
+$('previous').onclick=()=>chooseChapter(chapter-1);
+$('next').onclick=()=>chooseChapter(chapter+1);
+
+function rotate(d){rotation+=d;draw()}
+function changeZoom(d){
+ zoom=Math.max(.55,Math.min(1.75,zoom+d));
+ draw();
 }
-document.getElementById("left").onclick=()=>rotate(-.3);
-document.getElementById("right").onclick=()=>rotate(.3);
-document.getElementById("zin").onclick=()=>changeZoom(.12);
-document.getElementById("zout").onclick=()=>changeZoom(-.12);
-document.getElementById("reset").onclick=()=>{
-  rotation=-.6;zoom=1;draw();
-  status.textContent="View reset";
+$('left').onclick=()=>rotate(-.3);
+$('right').onclick=()=>rotate(.3);
+$('zoomIn').onclick=()=>changeZoom(.12);
+$('zoomOut').onclick=()=>changeZoom(-.12);
+$('reset').onclick=()=>{rotation=-.6;zoom=1;draw()};
+
+$('search').oninput=e=>{
+ const q=e.target.value.trim().toLowerCase();
+ listButtons.forEach((b,i)=>{
+   b.hidden=!names[i].toLowerCase().includes(q);
+ });
 };
-document.getElementById("goBooks").onclick=()=>{
-  document.getElementById("library").hidden=false;
-  document.getElementById("library").scrollIntoView({behavior:"smooth"});
+
+$('toggleNav').onclick=()=>{
+ const on=$('workspace').classList.toggle('collapsed');
+ $('toggleNav').textContent=on?'Show navigation':'Hide navigation';
+ draw();
 };
-document.getElementById("go3d").onclick=()=>{
-  stage.scrollIntoView({behavior:"smooth"});
-};
-document.getElementById("search").oninput=e=>{
-  const q=e.target.value.toLowerCase();
-  listButtons.forEach(b=>{
-    b.hidden=!b.textContent.toLowerCase().includes(q);
-  });
+$('toggleInfo').onclick=()=>{
+ const on=$('workspace').classList.toggle('readerCollapsed');
+ $('toggleInfo').textContent=on?'Show study panel':'Hide study panel';
+ draw();
 };
 
-function distance(){
-  const p=[...pointers.values()];
-  return Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
-}
-stage.addEventListener("pointerdown",e=>{
-  if(e.target.closest(".book"))return;
-  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  lastX=e.clientX;
-  if(pointers.size===2)lastDistance=distance();
-  stage.setPointerCapture(e.pointerId);
+document.querySelectorAll('[data-mode]').forEach(b=>{
+ b.onclick=()=>{
+   document.querySelectorAll('[data-mode]').forEach(x=>
+     x.setAttribute('aria-pressed',String(x===b))
+   );
+   if(b.dataset.mode==='books'){
+     $('search').focus();return;
+   }
+   alert(b.textContent.trim()+' will be added in a future release.');
+ };
 });
-stage.addEventListener("pointermove",e=>{
-  if(!pointers.has(e.pointerId))return;
-  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(pointers.size===2){
-    const d=distance();
-    if(lastDistance)changeZoom((d-lastDistance)*.003);
-    lastDistance=d;
-  }else if(pointers.size===1){
-    rotate((e.clientX-lastX)*.012);
-    lastX=e.clientX;
-  }
-});
-function endPointer(e){
-  pointers.delete(e.pointerId);
-  lastDistance=0;
-  if(pointers.size===1){
-    lastX=[...pointers.values()][0].x;
-  }
+
+function dist(){
+ const p=[...pointers.values()];
+ return Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
 }
-stage.addEventListener("pointerup",endPointer);
-stage.addEventListener("pointercancel",endPointer);
-stage.addEventListener("lostpointercapture",endPointer);
-stage.addEventListener("wheel",e=>{
-  e.preventDefault();
-  changeZoom(-e.deltaY*.001);
+stage.addEventListener('pointerdown',e=>{
+ pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ lastX=e.clientX;moved=false;
+ if(pointers.size===2)lastDistance=dist();
+ stage.setPointerCapture(e.pointerId);
+});
+stage.addEventListener('pointermove',e=>{
+ if(!pointers.has(e.pointerId))return;
+ pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ if(pointers.size>=2){
+   const d=dist();
+   if(lastDistance&&Math.abs(d-lastDistance)>1){
+     changeZoom((d-lastDistance)*.003);
+     moved=true;
+   }
+   lastDistance=d;
+ }else{
+   const dx=e.clientX-lastX;
+   if(Math.abs(dx)>1){
+     rotate(dx*.012);moved=true;
+   }
+   lastX=e.clientX;
+ }
+});
+function end(e){
+ if(moved)suppressClickUntil=Date.now()+180;
+ pointers.delete(e.pointerId);
+ lastDistance=0;
+ if(pointers.size===1)
+   lastX=[...pointers.values()][0].x;
+}
+stage.addEventListener('pointerup',end);
+stage.addEventListener('pointercancel',end);
+stage.addEventListener('lostpointercapture',end);
+stage.addEventListener('wheel',e=>{
+ e.preventDefault();
+ changeZoom(-e.deltaY*.001);
 },{passive:false});
-
-window.addEventListener("resize",draw);
+window.addEventListener('resize',draw);
 draw();
-status.textContent="Interactive controls ready ✓";
 </script>
 </body>
 </html>
