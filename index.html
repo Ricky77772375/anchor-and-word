@@ -280,7 +280,9 @@ stage.addEventListener('pointerdown',e=>{
  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
  lastX=e.clientX;moved=false;
  if(pointers.size===2)lastDistance=dist();
- stage.setPointerCapture(e.pointerId);
+if (e.target === stage || e.target === spiral) {
+  stage.setPointerCapture(e.pointerId);
+}
 });
 stage.addEventListener('pointermove',e=>{
  if(!pointers.has(e.pointerId))return;
