@@ -3247,11 +3247,16 @@ const scriptureConnectionLibrary = Object.freeze(
       const meta=document.createElement('div');meta.className='aw-tl-meta';meta.textContent=`People: ${e.people} · Places: ${e.places}`;
       card.append(name,period,desc,meta);
       e.refs.forEach(([book,chapter,verse])=>{const b=document.createElement('button');b.type='button';b.textContent=`Read ${book} ${chapter}:${verse}`;b.addEventListener('click',()=>openPassage(book,chapter,verse));card.appendChild(b)});
+      // v2.2: cross-library connections live inside each timeline event.
+      if(window.AWConnectedHistory && typeof window.AWConnectedHistory.makeConnections==='function'){
+        const connected=window.AWConnectedHistory.makeConnections(e);
+        if(connected)card.appendChild(connected);
+      }
       results.appendChild(card);
     });
     if(!matches.length){const empty=document.createElement('p');empty.className='aw-tl-note';empty.textContent='No timeline events match this search.';results.appendChild(empty)}
   }
-  filter.addEventListener('input',render);eraSelect.addEventListener('change',render);render();
+  filter.addEventListener('input',render);eraSelect.addEventListener('change',render);document.addEventListener('aw-connected-history-ready',render);render();
   const heading=search.previousElementSibling;
   function activate(mode){
     sections.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
@@ -3270,6 +3275,99 @@ const scriptureConnectionLibrary = Object.freeze(
   });
 })();
 /* END ANCHOR & WORD v2.1 */
+
+
+/* ANCHOR & WORD v2.2 — CONNECTED BIBLICAL HISTORY */
+(()=>{
+  'use strict';
+  if(window.AWConnectedHistory)return;
+  // Links deliberately point only to existing library entries. An event's
+  // other people and places remain informational rather than false links.
+  const connections={
+    'The Call of Abram':[
+      {kind:'people',label:'Abraham',search:'Abraham',why:'Abram (later Abraham) is the person called in Genesis 12.'},
+      {kind:'themes',label:'Faith',search:'Faith',why:'The Faith library includes Genesis 15:6 and later New Testament discussion.'}
+    ],
+    'The Exodus and Passover':[
+      {kind:'people',label:'Moses',search:'Moses',why:'Moses leads Israel during the Exodus narrative.'},
+      {kind:'themes',label:'Redemption',search:'Redemption',why:'The Redemption library begins with the Passover in Exodus 12.'}
+    ],
+    'David Becomes King':[
+      {kind:'people',label:'David',search:'David',why:'David is the central figure of this event.'},
+      {kind:'places',label:'Jerusalem',search:'Jerusalem',why:'The Places library includes David going to Jerusalem in 2 Samuel 5:6.'}
+    ],
+    'Birth of Jesus':[
+      {kind:'places',label:'Bethlehem',search:'Bethlehem',why:'The Places library gathers passages concerning Bethlehem.'},
+      {kind:'prophecy',label:'Bethlehem prophecy',search:'Bethlehem',why:'Micah 5:2 is cited in Matthew 2:6 concerning the Messiah’s birthplace.'}
+    ],
+    'Baptism of Jesus':[
+      {kind:'themes',label:'The Kingdom of God',search:'The Kingdom of God',why:'A broader theme related to Jesus’ public ministry; not an explicit prophecy-fulfillment claim.'}
+    ],
+    'Jesus Begins His Public Ministry':[
+      {kind:'places',label:'Capernaum',search:'Capernaum',why:'The Places library records Jesus’ ministry in Capernaum.'},
+      {kind:'themes',label:'The Kingdom of God',search:'The Kingdom of God',why:'Mark 1:15 records Jesus proclaiming the kingdom.'}
+    ],
+    'Crucifixion and Resurrection':[
+      {kind:'places',label:'Jerusalem',search:'Jerusalem',why:'Jerusalem is central to the Gospel accounts of Jesus’ final days.'},
+      {kind:'prophecy',label:'Suffering Servant',search:'Suffering Servant',why:'Explore Isaiah 53 and its New Testament citation; examine each relationship on its own terms.'},
+      {kind:'themes',label:'Redemption',search:'Redemption',why:'The Redemption library includes New Testament passages about Christ’s blood.'}
+    ],
+    'Pentecost':[
+      {kind:'places',label:'Jerusalem',search:'Jerusalem',why:'Acts 2 locates the gathered people in Jerusalem.'}
+    ],
+    'Paul’s Missionary Work':[
+      {kind:'people',label:'Paul',search:'Paul',why:'Paul is the central missionary in these passages.'}
+    ],
+    'John’s Revelation':[
+      {kind:'themes',label:'New Creation',search:'New Creation',why:'Revelation 21:1 speaks of a new heaven and a new earth.'}
+    ]
+  };
+  const style=document.createElement('style');
+  style.id='aw-v22-styles';
+  style.textContent=`
+    #awTimelineLibrary .aw-v22-details{margin-top:10px;border-top:1px solid #49607b;padding-top:9px}
+    #awTimelineLibrary .aw-v22-details summary{cursor:pointer;color:#efd18a;font-size:13px;font-weight:600;padding:4px 0}
+    #awTimelineLibrary .aw-v22-note{color:#c0d0e1;font-size:12px;line-height:1.5;margin:6px 0}
+    #awTimelineLibrary .aw-v22-links{display:grid;gap:7px;margin-top:7px}
+    #awTimelineLibrary .aw-v22-link{display:block;text-align:left;width:100%;border:1px solid #6e85a0;border-radius:7px;background:#173650;color:#f5e0a9;padding:9px;cursor:pointer}
+    #awTimelineLibrary .aw-v22-link small{display:block;color:#c0d0e1;line-height:1.4;margin-top:4px;font-size:11px}
+    #awTimelineLibrary .aw-v22-type{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#d5b979}
+  `;
+  document.head.appendChild(style);
+  function openLibrary(kind,searchTerm){
+    const button=document.querySelector(`#sections [data-mode="${kind}"]`);
+    const ids={people:'awPeopleLibrary',places:'awPlacesLibrary',themes:'awThemesLibrary',prophecy:'awProphecyLibrary'};
+    const panel=document.getElementById(ids[kind]);
+    if(!button||!panel)return false;
+    button.click();
+    const input=panel.querySelector('input[type="search"],input');
+    if(input){input.value=searchTerm;input.dispatchEvent(new Event('input',{bubbles:true}));}
+    panel.scrollIntoView({behavior:'smooth',block:'start'});
+    return true;
+  }
+  function makeConnections(event){
+    const items=connections[event.name];
+    if(!items?.length)return null;
+    const details=document.createElement('details');details.className='aw-v22-details';
+    const summary=document.createElement('summary');summary.textContent=`Explore connected libraries (${items.length})`;
+    const note=document.createElement('p');note.className='aw-v22-note';
+    note.textContent='Curated research links. A thematic connection is not automatically a prediction or fulfillment.';
+    const links=document.createElement('div');links.className='aw-v22-links';
+    for(const item of items){
+      const button=document.createElement('button');button.type='button';button.className='aw-v22-link';
+      const type=document.createElement('span');type.className='aw-v22-type';type.textContent=item.kind==='prophecy'?'Prophecy & Fulfillment':item.kind==='themes'?'Theme':item.kind==='places'?'Place':'Person';
+      const label=document.createElement('strong');label.textContent=' '+item.label;
+      const why=document.createElement('small');why.textContent=item.why;
+      button.append(type,label,why);
+      button.addEventListener('click',()=>openLibrary(item.kind,item.search));
+      links.appendChild(button);
+    }
+    details.append(summary,note,links);return details;
+  }
+  window.AWConnectedHistory={makeConnections,openLibrary};
+  document.dispatchEvent(new Event('aw-connected-history-ready'));
+})();
+/* END ANCHOR & WORD v2.2 */
 
 </script>
 </body>
