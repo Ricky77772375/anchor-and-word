@@ -1802,6 +1802,237 @@ showConnections(null);
 })();
 /* END ANCHOR & WORD v1.5 */
 
+/* ANCHOR & WORD v1.6 — FOCUS & ISOLATION */
+(function () {
+  "use strict";
+
+  const visualPanel = document.getElementById("visualConnections");
+  const stageElement = document.getElementById("stage");
+
+  if (!visualPanel || !stageElement) return;
+
+  // Avoid installing this upgrade twice.
+  if (document.getElementById("awV16Modes")) return;
+
+  const style = document.createElement("style");
+  style.textContent = `
+    #awV16Modes {
+      margin: 12px 0;
+      padding: 15px;
+      background: #102840;
+      border: 1px solid #9b8150;
+      border-radius: 11px;
+    }
+
+    #awV16Modes h3 {
+      margin: 0 0 10px;
+      color: #efd18a;
+      font: 20px Georgia, serif;
+    }
+
+    #awV16Modes .aw-mode-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    #awV16Modes button[aria-pressed="true"] {
+      background: #80602e;
+      border-color: #efd18a;
+      color: #fff4d5;
+    }
+
+    #awV16Modes .aw-mode-status {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #c5d2e5;
+      line-height: 1.6;
+    }
+
+    /* Override the spiral's inline opacity only
+       when Focus or Isolate is active. */
+    #stage.aw-v16-focus .book.aw-v16-unrelated {
+      opacity: .10 !important;
+      filter: grayscale(.85) brightness(.65) !important;
+    }
+
+    #stage.aw-v16-isolate .book.aw-v16-unrelated {
+      opacity: .025 !important;
+      filter: grayscale(1) brightness(.45) !important;
+    }
+
+    #stage.aw-v16-focus .book.aw-v16-related,
+    #stage.aw-v16-isolate .book.aw-v16-related {
+      opacity: 1 !important;
+      filter: none !important;
+    }
+
+    /* Keep the selected source book easy to recognize. */
+    #stage.aw-v16-focus .book.aw-v16-source,
+    #stage.aw-v16-isolate .book.aw-v16-source {
+      opacity: 1 !important;
+      filter: none !important;
+      box-shadow: 0 0 32px #ffd36e !important;
+    }
+
+    @media(max-width:650px) {
+      #awV16Modes .aw-mode-buttons button {
+        flex: 1 1 100px;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+
+  const panel = document.createElement("section");
+  panel.id = "awV16Modes";
+
+  const heading = document.createElement("h3");
+  heading.textContent = "Bible Viewing Modes";
+
+  const buttons = document.createElement("div");
+  buttons.className = "aw-mode-buttons";
+
+  const status = document.createElement("div");
+  status.className = "aw-mode-status";
+  status.setAttribute("role", "status");
+
+  panel.append(heading, buttons, status);
+
+  // Place controls immediately above visual connections.
+  visualPanel.insertAdjacentElement("beforebegin", panel);
+
+  let mode = "full";
+  let reference = null;
+
+  function getRelatedBooks(ref) {
+    const books = new Set();
+
+    if (!ref) return books;
+
+    books.add(ref.book);
+
+    const key =
+      ref.book + " " + ref.chapter + ":" + ref.verse;
+
+    (verseConnections[key] || []).forEach(item => {
+      books.add(item.book);
+    });
+
+    return books;
+  }
+
+  function updateView() {
+    stageElement.classList.toggle(
+      "aw-v16-focus", mode === "focus"
+    );
+
+    stageElement.classList.toggle(
+      "aw-v16-isolate", mode === "isolate"
+    );
+
+    const related = getRelatedBooks(reference);
+
+    nodes.forEach((node, index) => {
+      const book = names[index];
+
+      node.classList.toggle(
+        "aw-v16-source",
+        mode !== "full" &&
+        !!reference &&
+        book === reference.book
+      );
+
+      node.classList.toggle(
+        "aw-v16-related",
+        mode !== "full" &&
+        !!reference &&
+        related.has(book) &&
+        book !== reference.book
+      );
+
+      node.classList.toggle(
+        "aw-v16-unrelated",
+        mode !== "full" &&
+        !!reference &&
+        !related.has(book)
+      );
+    });
+
+    modeButtons.forEach((button, key) => {
+      button.setAttribute(
+        "aria-pressed", String(key === mode)
+      );
+    });
+
+    if (mode === "full") {
+      status.textContent =
+        "Full Bible: All 66 books are available. " +
+        "Existing illumination and connection lines remain active.";
+    } else if (!reference) {
+      status.textContent =
+        "Select a Scripture verse to activate " +
+        mode + " viewing.";
+    } else {
+      const key =
+        reference.book + " " +
+        reference.chapter + ":" +
+        reference.verse;
+
+      status.textContent =
+        (mode === "focus" ? "Focus" : "Isolate") +
+        ": Showing the relationships for " + key +
+        " (" + related.size + " book(s) in this study).";
+    }
+  }
+
+  const modeButtons = new Map();
+
+  [
+    ["full", "Full Bible"],
+    ["focus", "Focus"],
+    ["isolate", "Isolate"]
+  ].forEach(([key, label]) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+
+    button.addEventListener("click", () => {
+      mode = key;
+      updateView();
+    });
+
+    modeButtons.set(key, button);
+    buttons.appendChild(button);
+  });
+
+  // Keep modes synchronized with every Scripture selection.
+  const previousShowConnections = showConnections;
+
+  showConnections = function(ref) {
+    previousShowConnections(ref);
+    reference = ref;
+    updateView();
+  };
+
+  // Restore the previous full view if requested.
+  const restore = document.createElement("button");
+  restore.type = "button";
+  restore.textContent = "↩ Return to Full Bible";
+
+  restore.addEventListener("click", () => {
+    mode = "full";
+    updateView();
+  });
+
+  buttons.appendChild(restore);
+
+  // Initialize without changing existing Scripture selection.
+  reference = currentReference();
+  updateView();
+
+})();
+/* END ANCHOR & WORD v1.6 */
+
 
 
 </script>
