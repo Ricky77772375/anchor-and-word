@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Anchor & Word — Scripture Explorer v0.7</title>
+<title>Anchor & Word — Scripture Explorer v1.8 Foundation</title>
 <style>
 :root{--bg:#061121;--panel:#10243d;--line:#345171;--gold:#efd18a;--ink:#e9eef7;--muted:#aabbd1}
 *{box-sizing:border-box}
@@ -67,7 +67,7 @@ header{padding:12px}h1{font-size:23px}
 <header>
 <div><h1>⚓ Anchor & Word</h1>
 <small>Grounded in Scripture. Brought to life.</small></div>
-<small>Scripture Explorer · Desktop v0.7</small>
+<small>Scripture Explorer · v1.8 Foundation</small>
 </header>
 
 <div class="workspace" id="workspace">
@@ -135,7 +135,7 @@ Verified cross-references, people, places, and themes will appear in a future re
 </p>
 </aside>
 </div>
-<footer>Anchor & Word · Prototype v0.7</footer>
+<footer>Anchor & Word · Prototype v1.8 Foundation</footer>
 
 <script>
 'use strict';
@@ -159,7 +159,7 @@ b.onclick=()=>{
   if(Date.now()<suppressClickUntil)return;
 
   choose(i);
-  chooseChapter(1);
+  // v1.5 handles opening chapter 1 and selecting verse 1.
 };
  spiral.appendChild(b);
  nodes.push(b);
@@ -456,7 +456,7 @@ async function loadScripture(bookIndex, chapterNumber) {
       line.addEventListener("keydown", e => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          select();
+          line.click();
         }
       });
 
@@ -725,33 +725,32 @@ connectionsPanel.style.padding = "16px";
 connectionsPanel.style.margin = "15px 0";
 connectionsPanel.style.borderRadius = "12px";
 
-/* Read the verse number directly from the clicked verse.
-   This avoids depending on the order of other click handlers. */
-reader.addEventListener("click", function(event) {
-  const verseElement = event.target.closest(".scripture-verse");
-  if (!verseElement || selected < 0 || chapter < 1) return;
-
-  const numberElement =
-    verseElement.querySelector(".verse-number");
-
-  if (!numberElement) return;
-
-  const verseNumber = Number(numberElement.textContent);
-  if (!Number.isInteger(verseNumber)) return;
-
-  selectedVerse = verseNumber;
-
-  showConnections({
-    book: names[selected],
-    chapter: chapter,
-    verse: verseNumber
-  });
-});
+/* The v0.9 reader click handler already updates connections.
+   Avoid a second identical handler for every verse click. */
 
 /* Make sure the connection panel is visible initially. */
 showConnections(null);
 
 /* END CONNECTION PANEL REPAIR */
+
+/* ANCHOR & WORD v1.8 — CONNECTIONS LIBRARY FOUNDATION
+   Existing curated connections are indexed here for future filters.
+   The current diagram, highlighting and navigation continue to use
+   verseConnections without any changes to their behavior.
+   Categories here describe the study relationship, not proof of
+   a direct quotation or a fulfilled prophecy.
+*/
+const scriptureConnectionLibrary = Object.freeze(
+  Object.entries(verseConnections).flatMap(([source, links]) =>
+    links.map(link => Object.freeze({
+      source,
+      target: `${link.book} ${link.chapter}:${link.verse}`,
+      note: link.note,
+      category: "Theme",
+      relationship: "curated thematic study connection"
+    }))
+  )
+);
 
 /* ANCHOR & WORD v1.0 — VISUAL SCRIPTURE CONNECTIONS */
 (function () {
