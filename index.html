@@ -3048,6 +3048,126 @@ const scriptureConnectionLibrary = Object.freeze(
 })();
 /* END ANCHOR & WORD v1.9.2 THEMES */
 
+
+/* ANCHOR & WORD v2.0 — PROPHECY & FULFILLMENT LIBRARY */
+(function () {
+  'use strict';
+  const sections=document.getElementById('sections');
+  const list=document.getElementById('booklist');
+  const search=document.getElementById('search');
+  const people=document.getElementById('awPeopleLibrary');
+  const places=document.getElementById('awPlacesLibrary');
+  const themes=document.getElementById('awThemesLibrary');
+  if(!sections||!list||!search||!people||!places||!themes||document.getElementById('awProphecyLibrary'))return;
+
+  // Each classification describes the NT passage's relationship to the OT text.
+  // Interpretive categories are identified rather than presented as explicit fulfillment.
+  const studies=[
+    {name:'The Messiah and Bethlehem',category:'Explicit fulfillment statement',
+     detail:'Matthew reports that the chief priests and scribes identified Bethlehem using the prophet’s words. Matthew 2:1 records Jesus’ birth there; Matthew 2:5–6 contains the prophetic citation.',
+     old:[['Micah',5,2,'Bethlehem Ephrathah and the coming ruler']],
+     newer:[['Matthew',2,1,'Jesus born in Bethlehem'],['Matthew',2,5,'Bethlehem identified through the prophet'],['Matthew',2,6,'Matthew’s quotation of the prophetic passage']]},
+    {name:'The Birth of Jesus and Isaiah',category:'Explicit fulfillment statement',
+     detail:'Matthew 1:22 explicitly introduces the event as fulfillment of what the Lord spoke through the prophet, followed by the quotation in verse 23. Interpretations of Isaiah’s original historical setting differ.',
+     old:[['Isaiah',7,14,'The sign and the child called Immanuel']],
+     newer:[['Matthew',1,22,'Matthew introduces the fulfillment statement'],['Matthew',1,23,'Matthew quotes the Immanuel passage']]},
+    {name:'The King Enters Jerusalem',category:'Explicit fulfillment statement',
+     detail:'Matthew 21:4–5 explicitly presents Jesus’ entry into Jerusalem in connection with the prophetic words about a king coming on a donkey.',
+     old:[['Zechariah',9,9,'The king comes humble and riding on a donkey']],
+     newer:[['Matthew',21,4,'Matthew introduces fulfillment'],['Matthew',21,5,'The prophetic words are cited'],['John',12,15,'John cites the king-on-a-donkey passage']]},
+    {name:'Garments Divided and Lots Cast',category:'Explicit fulfillment statement',
+     detail:'John 19:24 explicitly states that the soldiers’ actions fulfilled the Scripture concerning divided garments and the casting of lots.',
+     old:[['Psalms',22,18,'Garments divided and lots cast']],
+     newer:[['John',19,23,'The soldiers divide Jesus’ garments'],['John',19,24,'John identifies the fulfillment']]},
+    {name:'The Suffering Servant',category:'Direct quotation and apostolic interpretation',
+     detail:'Acts 8 records the Ethiopian official reading Isaiah’s suffering-servant passage; Philip begins with that Scripture and proclaims Jesus. The passage is directly quoted, while the interpretation is explained in the narrative.',
+     old:[['Isaiah',53,7,'The servant is led as a lamb'],['Isaiah',53,8,'His judgment and life are described']],
+     newer:[['Acts',8,32,'Isaiah is quoted'],['Acts',8,33,'The quotation continues'],['Acts',8,35,'Philip preaches Jesus from this Scripture']]},
+    {name:'The Pierced One',category:'Direct quotation with fulfillment context',
+     detail:'John 19:37 quotes the Scripture about looking on the one who was pierced, in the account of Jesus’ crucifixion.',
+     old:[['Zechariah',12,10,'Looking upon the one who was pierced']],
+     newer:[['John',19,34,'Jesus’ side is pierced'],['John',19,37,'John cites the Scripture']]},
+    {name:'The Passover Lamb',category:'Typological / thematic connection',
+     detail:'Exodus describes the Passover lamb and its blood; Paul calls Christ “our passover.” This is an apostolic theological connection, not an explicit formula stating that Exodus 12:13 was fulfilled on a particular occasion.',
+     old:[['Exodus',12,5,'The Passover lamb'],['Exodus',12,13,'The blood as a sign']],
+     newer:[['1 Corinthians',5,7,'Christ our Passover is sacrificed'],['John',1,29,'Jesus called the Lamb of God']]}
+  ];
+  const css=document.createElement('style');
+  css.id='aw-v20-styles';
+  css.textContent=`
+    #awProphecyLibrary{margin-top:12px;padding:10px;border:1px solid #826d49;border-radius:9px;background:#0b1d34}
+    #awProphecyLibrary h3{margin:0 0 8px;color:#efd18a;font:18px Georgia,serif}
+    #awProphecyLibrary .aw-v20-notice,#awProphecyLibrary article p{font-size:12px;line-height:1.6;color:#bfcee0}
+    #awProphecyLibrary article{margin:12px 0;padding:11px;border:1px solid #536782;border-radius:9px;background:#112941}
+    #awProphecyLibrary article h4{font:17px Georgia,serif;color:#efd18a;margin:0 0 6px}
+    #awProphecyLibrary .aw-v20-category{display:inline-block;font-size:11px;color:#f3dba4;border:1px solid #826d49;border-radius:12px;padding:4px 8px;margin-bottom:7px}
+    #awProphecyLibrary .aw-v20-pair{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+    #awProphecyLibrary .aw-v20-side{min-width:0;padding:8px;border:1px solid #405c7a;border-radius:7px;background:#091d33}
+    #awProphecyLibrary .aw-v20-side strong{display:block;color:#e6cf96;font-size:11px;margin-bottom:5px}
+    #awProphecyLibrary .aw-v20-side button{display:block;width:100%;text-align:left;padding:8px 6px;margin-top:5px;font-size:12px;overflow-wrap:anywhere}
+    #awProphecyLibrary .aw-v20-count{font-size:11px;color:#b8c9de;margin:7px 0}
+    @media(max-width:650px){#awProphecyLibrary .aw-v20-pair{grid-template-columns:1fr}}
+  `;
+  document.head.appendChild(css);
+  const panel=document.createElement('section');panel.id='awProphecyLibrary';panel.hidden=true;
+  const title=document.createElement('h3');title.textContent='Prophecy & Fulfillment';
+  const intro=document.createElement('p');intro.className='aw-v20-notice';
+  intro.textContent='A curated starter library. Labels distinguish explicit fulfillment, direct quotations, and interpretive relationships. Read each passage in context; these labels do not settle every interpretive question.';
+  const filter=document.createElement('input');filter.type='search';filter.placeholder='Search prophecies, references, or relationship types';
+  filter.setAttribute('aria-label','Search prophecy and fulfillment studies');
+  const count=document.createElement('p');count.className='aw-v20-count';count.setAttribute('aria-live','polite');
+  const results=document.createElement('div');panel.append(title,intro,filter,count,results);
+  list.insertAdjacentElement('afterend',panel);
+
+  function openPassage(book,chapter,verse){
+    openConnectedVerse({book,chapter,verse});
+    if(window.innerWidth<651)document.getElementById('inspector')?.scrollIntoView({behavior:'smooth'});
+  }
+  function addSide(parent,label,passages){
+    const side=document.createElement('div');side.className='aw-v20-side';
+    const heading=document.createElement('strong');heading.textContent=label;side.appendChild(heading);
+    passages.forEach(([book,chapter,verse,note])=>{
+      const b=document.createElement('button');b.type='button';
+      b.textContent=`${book} ${chapter}:${verse} — ${note}`;
+      b.addEventListener('click',()=>openPassage(book,chapter,verse));side.appendChild(b);
+    });parent.appendChild(side);
+  }
+  function render(){
+    results.replaceChildren();const q=filter.value.trim().toLowerCase();
+    const matches=studies.filter(s=>
+      [s.name,s.category,s.detail,...s.old.flat(),...s.newer.flat()].join(' ').toLowerCase().includes(q));
+    count.textContent=`${matches.length} of ${studies.length} curated studies`;
+    if(!matches.length){const p=document.createElement('p');p.className='aw-v20-notice';p.textContent='No matching studies in this starter library.';results.appendChild(p);}
+    matches.forEach(s=>{
+      const card=document.createElement('article');
+      const name=document.createElement('h4');name.textContent=s.name;
+      const category=document.createElement('span');category.className='aw-v20-category';category.textContent=s.category;
+      const detail=document.createElement('p');detail.textContent=s.detail;
+      const pair=document.createElement('div');pair.className='aw-v20-pair';
+      addSide(pair,'OLD TESTAMENT',s.old);addSide(pair,'NEW TESTAMENT',s.newer);
+      card.append(name,category,detail,pair);results.appendChild(card);
+    });
+  }
+  filter.addEventListener('input',render);render();
+  const heading=search.previousElementSibling;
+  function activate(mode){
+    sections.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
+    const books=mode==='books';list.hidden=!books;search.hidden=!books;
+    if(heading&&heading.tagName==='H3')heading.hidden=!books;
+    people.hidden=mode!=='people';places.hidden=mode!=='places';themes.hidden=mode!=='themes';panel.hidden=mode!=='prophecy';
+    if(books)search.focus();
+    if(mode==='people')people.querySelector('input')?.focus();
+    if(mode==='places')places.querySelector('input')?.focus();
+    if(mode==='themes')themes.querySelector('input')?.focus();
+    if(mode==='prophecy')filter.focus();
+  }
+  ['books','people','places','themes','prophecy'].forEach(mode=>{
+    const b=sections.querySelector(`[data-mode="${mode}"]`);
+    if(b)b.onclick=()=>activate(mode);
+  });
+})();
+/* END ANCHOR & WORD v2.0 */
+
 </script>
 </body>
 </html>
