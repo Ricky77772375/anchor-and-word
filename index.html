@@ -2041,6 +2041,139 @@ showConnections(null);
 })();
 /* END ANCHOR & WORD v1.6 */
 
+/* ANCHOR & WORD v1.6.1 — COMPACT STUDY CONTROLS */
+(function () {
+  "use strict";
+
+  const illumination = document.querySelector(
+    ".connection-toolbar"
+  );
+
+  const spiralControls = document.querySelector(
+    ".path-controls"
+  );
+
+  const viewingModes = document.getElementById(
+    "awV16Modes"
+  );
+
+  if (!illumination || !spiralControls) return;
+
+  // Move the existing illumination checkbox into the
+  // spiral controls without recreating its event handlers.
+  const checkbox = illumination.querySelector(
+    "#highlightConnections"
+  );
+
+  const label = illumination.querySelector(
+    'label[for="highlightConnections"]'
+  );
+
+  const summary = illumination.querySelector(
+    ".connection-summary"
+  );
+
+  if (checkbox && label) {
+    const compact = document.createElement("div");
+    compact.className = "aw-compact-illumination";
+
+    // The label already points to the existing checkbox.
+    compact.append(checkbox, label);
+
+    spiralControls.appendChild(compact);
+  }
+
+  // Keep the status available, but visually compact.
+  if (summary) {
+    summary.classList.add("aw-compact-summary");
+    spiralControls.insertAdjacentElement(
+      "afterend",
+      summary
+    );
+  }
+
+  // Remove the now-empty original panel.
+  illumination.remove();
+
+  const style = document.createElement("style");
+
+  style.textContent = `
+    .path-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px 18px;
+      padding: 8px 0;
+    }
+
+    .aw-compact-illumination {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: #efd18a;
+      font-size: 12px;
+    }
+
+    .aw-compact-illumination input {
+      width: auto;
+      margin: 0;
+      accent-color: #d6b56f;
+    }
+
+    .aw-compact-illumination label {
+      cursor: pointer;
+    }
+
+    .aw-compact-summary {
+      display: block;
+      margin: 2px 0 8px;
+      color: #b9c7da;
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    #awV16Modes {
+      margin: 8px 0 !important;
+      padding: 11px 13px !important;
+    }
+
+    #awV16Modes h3 {
+      font-size: 17px !important;
+      margin-bottom: 7px !important;
+    }
+
+    #awV16Modes .aw-mode-status {
+      margin-top: 6px;
+    }
+
+    #visualConnections.aw-expanded-visual {
+      margin-top: 10px !important;
+    }
+
+    .path-legend {
+      margin: 3px 0 7px;
+    }
+  `;
+
+  document.head.appendChild(style);
+
+  // Keep viewing modes immediately above the diagram.
+  if (viewingModes) {
+    const visualPanel = document.getElementById(
+      "visualConnections"
+    );
+
+    if (visualPanel) {
+      visualPanel.insertAdjacentElement(
+        "beforebegin",
+        viewingModes
+      );
+    }
+  }
+
+})();
+/* END ANCHOR & WORD v1.6.1 */
+
 
 
 </script>
