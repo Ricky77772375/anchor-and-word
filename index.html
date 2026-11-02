@@ -1352,6 +1352,202 @@ showConnections(null);
 })();
 /* END ANCHOR & WORD v1.2 */
 
+/* ANCHOR & WORD v1.4 — SCRIPTURE-FIRST WORKSPACE */
+(function () {
+  "use strict";
+
+  const workspace = document.getElementById("workspace");
+  const main = workspace.querySelector("main.panel");
+  const inspector = document.getElementById("inspector");
+
+  const readerPanel = document.getElementById("scriptureReader");
+  const writtenConnections = document.querySelector(".connection-panel");
+  const visualPanel = document.getElementById("visualConnections");
+  const chapterNavigation = inspector.querySelector(
+    ".tools:has(#previous)"
+  );
+
+  const pathLegend = document.querySelector(".path-legend");
+  const pathControls = document.querySelector(".path-controls");
+
+  // 1. Move the existing visual diagram into the main workspace.
+  // Moving the element preserves its click and keyboard handlers.
+  if (visualPanel && main) {
+    const anchor = pathLegend || pathControls ||
+      document.getElementById("stage");
+
+    anchor.insertAdjacentElement("afterend", visualPanel);
+    visualPanel.classList.add("aw-expanded-visual");
+  }
+
+  // 2. Put the full Scripture Reader directly below
+  // chapter information and chapter navigation.
+  if (readerPanel && inspector) {
+    const anchor = chapterNavigation ||
+      document.getElementById("chapterInfo");
+
+    anchor.insertAdjacentElement("afterend", readerPanel);
+  }
+
+  // 3. Place written Scripture Connections below the Reader.
+  if (writtenConnections && readerPanel) {
+    readerPanel.insertAdjacentElement(
+      "afterend",
+      writtenConnections
+    );
+  }
+
+  // 4. Update the study panel's old placeholder text.
+  const oldConnectionHeading = [...inspector.querySelectorAll("h3")]
+    .find(el => el.textContent.trim() === "Connections");
+
+  if (oldConnectionHeading) {
+    const placeholder = oldConnectionHeading.nextElementSibling;
+    if (
+      placeholder &&
+      placeholder.matches("p.subtle") &&
+      placeholder.textContent.includes("future release")
+    ) {
+      placeholder.remove();
+    }
+    oldConnectionHeading.remove();
+  }
+
+  // 5. Improve workspace dimensions and reading comfort.
+  const style = document.createElement("style");
+  style.id = "aw-v14-layout";
+
+  style.textContent = `
+    /* Larger central workspace and Scripture sidebar */
+    .workspace {
+      grid-template-columns:
+        200px minmax(0, 1fr) minmax(340px, 400px);
+      max-width: 1900px;
+      align-items: start;
+    }
+
+    .workspace > main.panel,
+    .workspace > .inspector {
+      min-width: 0;
+    }
+
+    /* Full-size visual diagram beneath spiral controls */
+    #visualConnections.aw-expanded-visual {
+      width: 100%;
+      margin: 22px 0 4px !important;
+      padding: 22px !important;
+      background: #0a1d34;
+      border: 1px solid #987e4a;
+      border-radius: 12px;
+    }
+
+    #visualConnections h3 {
+      font-size: 24px !important;
+      margin-bottom: 12px !important;
+    }
+
+    #connectionGraph {
+      width: 100%;
+      min-height: 260px;
+      overflow-x: auto;
+      padding: 12px 0;
+    }
+
+    #connectionGraph svg {
+      display: block;
+      width: 100%;
+      max-width: 850px;
+      height: auto;
+      margin: 0 auto;
+    }
+
+    /* Give Scripture a clear reading position */
+    .inspector #scriptureReader {
+      display: block;
+      margin: 16px 0 0;
+      padding: 16px;
+      max-height: 65vh;
+      overflow-y: auto;
+      background: #07182c;
+      border: 1px solid #587293;
+      border-radius: 10px;
+    }
+
+    .inspector .scripture-verse {
+      font-size: 17px;
+      line-height: 1.9;
+    }
+
+    /* Written cross-references beneath Scripture */
+    .inspector .connection-panel {
+      margin: 18px 0 0 !important;
+      padding: 16px;
+    }
+
+    /* Comfortable intermediate screen layout */
+    @media (max-width: 1250px) and (min-width: 1051px) {
+      .workspace {
+        grid-template-columns:
+          165px minmax(0, 1fr) minmax(300px, 340px);
+      }
+    }
+
+    @media (max-width: 1050px) and (min-width: 651px) {
+      .workspace {
+        grid-template-columns: 190px minmax(0, 1fr);
+      }
+
+      .workspace > .inspector {
+        grid-column: 1 / -1;
+      }
+
+      .inspector #scriptureReader {
+        max-height: 650px;
+      }
+    }
+
+    @media (max-width: 650px) {
+      .workspace,
+      .workspace.collapsed,
+      .workspace.readerCollapsed,
+      .workspace.collapsed.readerCollapsed {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .workspace > main.panel,
+      .workspace > .inspector,
+      .workspace > .sidebar {
+        width: 100%;
+      }
+
+      #visualConnections.aw-expanded-visual {
+        padding: 12px !important;
+      }
+
+      #connectionGraph {
+        min-height: 170px;
+      }
+
+      .inspector #scriptureReader {
+        max-height: 60vh;
+      }
+    }
+  `;
+
+  document.head.appendChild(style);
+
+  // 6. Recalculate the spiral after its container changes size.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      draw();
+      window.dispatchEvent(new Event("resize"));
+    });
+  });
+
+})();
+/* END ANCHOR & WORD v1.4 */
+
 </script>
 </body>
 </html>
