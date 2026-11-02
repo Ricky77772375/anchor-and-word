@@ -2594,6 +2594,75 @@ const scriptureConnectionLibrary = Object.freeze(
 /* END ANCHOR & WORD v1.8.1 */
 
 
+/* ANCHOR & WORD v1.9.2 — PASSAGE STUDY NOTES */
+(function () {
+  'use strict';
+  const api=window.AWStudyTrace;
+  const trail=document.getElementById('awTraceTrail');
+  const saved=document.getElementById('awStudyTrace');
+  if (!api || !trail || !saved || document.getElementById('awStudyNotes')) return;
+  let notes={};
+  let currentKey='';
+  const css=document.createElement('style');
+  css.textContent=`
+    #awStudyNotes {margin:12px 0 0;padding:12px;border:1px solid #526b8b;border-radius:9px;background:#0a1c32}
+    #awStudyNotes h4 {margin:0 0 7px;font:18px Georgia,serif;color:#efd18a}
+    #awStudyNotes label {display:block;margin-bottom:6px;color:#d4e0ef;font-size:12px}
+    #awStudyNotes textarea {display:block;width:100%;min-height:90px;resize:vertical;padding:10px;
+      background:#07182c;border:1px solid #536c89;border-radius:8px;color:#fff;font:14px system-ui;line-height:1.5}
+    #awStudyNotes p {color:#aabbd1;font-size:12px;line-height:1.5;margin:8px 0 0}
+  `;
+  document.head.appendChild(css);
+  const panel=document.createElement('section');panel.id='awStudyNotes';
+  const title=document.createElement('h4');title.textContent='Passage Study Notes';
+  const label=document.createElement('label');label.htmlFor='awPassageNote';
+  const input=document.createElement('textarea');input.id='awPassageNote';input.maxLength=5000;
+  input.placeholder='Write what you discover in this passage...';
+  const hint=document.createElement('p');hint.textContent='Notes belong to each passage. Select Save Study to preserve them in your saved study and exported backup.';
+  panel.append(title,label,input,hint);
+  trail.insertAdjacentElement('afterend',panel);
+  function key(ref){return `${ref.book} ${ref.chapter}:${ref.verse}`;}
+  function selectNote(ref){
+    currentKey=ref?key(ref):'';
+    label.textContent=currentKey?`Notes for ${currentKey}`:'Select a traced passage to write a note';
+    input.disabled=!currentKey;
+    input.value=currentKey?(notes[currentKey]||''):'';
+  }
+  input.addEventListener('input',()=>{
+    if(!currentKey)return;
+    if(input.value)notes[currentKey]=input.value;
+    else delete notes[currentKey];
+    document.dispatchEvent(new Event('aw:tracechange'));
+  });
+  // Clicking a trace chip revisits a passage without adding another step.
+  trail.addEventListener('click',e=>{
+    const chip=e.target.closest('button');if(!chip)return;
+    const step=api.get().find(ref=>key(ref)===chip.textContent.trim());
+    if(step)selectNote(step);
+  });
+  // New verse selections update the note editor. Revisit selections also update it.
+  const previousShow=showConnections;
+  showConnections=function(ref){previousShow(ref);if(ref)selectNote(ref);};
+  // A fresh study clears notes; a restored study will replace them immediately afterwards.
+  document.addEventListener('aw:tracechange',()=>{
+    if(api.get().length===0){notes={};selectNote(null);}
+  });
+  window.AWStudyNotes={
+    get:()=>({...notes}),
+    replace:incoming=>{
+      notes={};
+      if(incoming&&typeof incoming==='object'&&!Array.isArray(incoming)){
+        for(const [k,v] of Object.entries(incoming)){
+          if(k.length<=110&&typeof v==='string'&&v.length<=5000)notes[k]=v;
+        }
+      }
+      const steps=api.get();selectNote(steps.length?steps[steps.length-1]:null);
+    }
+  };
+  const steps=api.get();selectNote(steps.length?steps[steps.length-1]:null);
+})();
+/* END ANCHOR & WORD v1.9.2 PASSAGE NOTES */
+
 /* ANCHOR & WORD v1.9 — SAVED SCRIPTURE STUDIES */
 (function () {
   'use strict';
@@ -2665,7 +2734,9 @@ const scriptureConnectionLibrary = Object.freeze(
   function validStudy(s) {
     return s && typeof s.id==='string' && s.id.length<=100 &&
       typeof s.name==='string' && s.name.trim().length>0 && s.name.length<=100 &&
-      validSteps(s.steps) && typeof s.updatedAt==='string';
+      validSteps(s.steps) && typeof s.updatedAt==='string' &&
+      (s.notes===undefined || (s.notes && typeof s.notes==='object' && !Array.isArray(s.notes) &&
+       Object.entries(s.notes).length<=2000 && Object.entries(s.notes).every(([k,v])=>k.length<=110 && typeof v==='string' && v.length<=5000)));
   }
   function persist() {
     try { localStorage.setItem(KEY,JSON.stringify({version:1,studies})); return true; }
@@ -2705,7 +2776,7 @@ const scriptureConnectionLibrary = Object.freeze(
     const existing=studies.find(s=>s.id===activeId);
     if (!existing && studies.length>=MAX_STUDIES) { report('Maximum of 60 saved studies reached. Export or delete an older study.',true); return; }
     const id=existing ? existing.id : String(Date.now())+'-'+Math.random().toString(36).slice(2);
-    const updated={id,name,steps,updatedAt:new Date().toISOString()};
+    const updated={id,name,steps,notes:window.AWStudyNotes?.get()||{},updatedAt:new Date().toISOString()};
     const next=studies.filter(s=>s.id!==id);
     next.unshift(updated);
     const prior=studies;
@@ -2720,6 +2791,7 @@ const scriptureConnectionLibrary = Object.freeze(
     if (dirty && !window.confirm('Discard unsaved changes to your current study?')) return;
     loading=true;
     api.replace(study.steps);
+    window.AWStudyNotes?.replace(study.notes||{});
     loading=false;
     activeId=study.id; dirty=false; nameInput.value=study.name;
     report(`Opened “${study.name}”. Select a trace reference to continue reading.`);
@@ -2754,7 +2826,7 @@ const scriptureConnectionLibrary = Object.freeze(
           data.studies.length>MAX_STUDIES || !data.studies.every(validStudy)) {
         report('This is not a valid Anchor & Word studies backup.',true); return;
       }
-      const imported=data.studies.map(s=>({id:s.id,name:s.name,steps:s.steps,updatedAt:s.updatedAt}));
+      const imported=data.studies.map(s=>({id:s.id,name:s.name,steps:s.steps,notes:s.notes||{},updatedAt:s.updatedAt}));
       const merged=[...studies];
       for (const study of imported) {
         const idx=merged.findIndex(s=>s.id===study.id);
@@ -2891,6 +2963,90 @@ const scriptureConnectionLibrary = Object.freeze(
   });
 })();
 /* END ANCHOR & WORD v1.9.1 */
+
+
+
+/* ANCHOR & WORD v1.9.2 — THEMES OF SCRIPTURE */
+(function () {
+  'use strict';
+  const sections=document.getElementById('sections');
+  const list=document.getElementById('booklist');
+  const search=document.getElementById('search');
+  const people=document.getElementById('awPeopleLibrary');
+  const places=document.getElementById('awPlacesLibrary');
+  if(!sections||!list||!search||!people||!places||document.getElementById('awThemesLibrary'))return;
+  const themes=[
+    {name:'Faith',detail:'Belief, trust, and the testimony of faith throughout Scripture.',passages:[
+      ['Genesis',15,6,'Abram believed the LORD'],['Romans',4,3,'Paul cites Abraham’s faith'],
+      ['Hebrews',11,1,'Faith described'],['James',2,23,'James refers to Abraham’s belief']]},
+    {name:'Redemption',detail:'Deliverance and redemption, from the exodus to the work of Christ.',passages:[
+      ['Exodus',12,13,'The Passover blood as a sign'],['Ephesians',1,7,'Redemption through Christ’s blood'],
+      ['1 Peter',1,18,'Redeemed not with corruptible things'],['1 Peter',1,19,'The precious blood of Christ']]},
+    {name:'The Kingdom of God',detail:'God’s reign and the proclamation of His kingdom.',passages:[
+      ['Daniel',2,44,'God establishes a kingdom'],['Mark',1,15,'Jesus proclaims the kingdom'],
+      ['Luke',17,21,'Jesus teaches about the kingdom'],['Revelation',11,15,'The kingdom of our Lord and of His Christ']]},
+    {name:'Spiritual Warfare',detail:'God’s strength, armor, and the spiritual nature of the believer’s struggle.',passages:[
+      ['Isaiah',59,17,'The LORD puts on righteousness and salvation'],
+      ['Ephesians',6,11,'Put on the whole armor of God'],
+      ['Ephesians',6,12,'The nature of the struggle'],
+      ['2 Corinthians',10,4,'Weapons not carnal']]},
+    {name:'New Creation',detail:'God’s promised renewal and the new life found in Christ.',passages:[
+      ['Isaiah',65,17,'New heavens and a new earth'],
+      ['2 Corinthians',5,17,'A new creature in Christ'],
+      ['Revelation',21,1,'A new heaven and a new earth']]}
+  ];
+  const css=document.createElement('style');
+  css.textContent=`
+    #awThemesLibrary {margin-top:12px;padding:10px;border:1px solid #486684;border-radius:9px;background:#0b1d34}
+    #awThemesLibrary h3 {margin:0 0 8px;color:#efd18a;font:18px Georgia,serif}
+    #awThemesLibrary article {margin:10px 0;padding:10px;border:1px solid #425e7c;border-radius:8px}
+    #awThemesLibrary article strong {color:#efd18a}
+    #awThemesLibrary article p,#awThemesLibrary .aw-theme-notice {font-size:12px;line-height:1.55;color:#bfcee0}
+    #awThemesLibrary article button {width:100%;margin-top:6px;text-align:left;padding:8px}
+  `;
+  document.head.appendChild(css);
+  const panel=document.createElement('section');panel.id='awThemesLibrary';panel.hidden=true;
+  const title=document.createElement('h3');title.textContent='Themes of Scripture';
+  const intro=document.createElement('p');intro.className='aw-theme-notice';
+  intro.textContent='Curated thematic study paths, not necessarily direct quotations or prophetic fulfillment. Select a verse to explore and trace it.';
+  const filter=document.createElement('input');filter.type='search';filter.placeholder='Search themes or Scripture references';
+  filter.setAttribute('aria-label','Search Scripture themes');
+  const results=document.createElement('div');panel.append(title,intro,filter,results);
+  list.insertAdjacentElement('afterend',panel);
+  function render(){
+    results.replaceChildren();const q=filter.value.trim().toLowerCase();
+    const matches=themes.filter(t=>(t.name+' '+t.detail+' '+t.passages.flat().join(' ')).toLowerCase().includes(q));
+    if(!matches.length){const p=document.createElement('p');p.className='aw-theme-notice';p.textContent='No matching themes in this starter library.';results.appendChild(p);}
+    matches.forEach(t=>{
+      const card=document.createElement('article');const name=document.createElement('strong');name.textContent=t.name;
+      const desc=document.createElement('p');desc.textContent=t.detail;card.append(name,desc);
+      t.passages.forEach(([book,chapter,verse,note])=>{
+        const b=document.createElement('button');b.type='button';b.textContent=`${book} ${chapter}:${verse} — ${note}`;
+        b.addEventListener('click',()=>{
+          openConnectedVerse({book,chapter,verse});
+          if(window.innerWidth<651)document.getElementById('inspector').scrollIntoView({behavior:'smooth'});
+        });card.appendChild(b);
+      });results.appendChild(card);
+    });
+  }
+  filter.addEventListener('input',render);render();
+  const heading=search.previousElementSibling;
+  function activate(mode){
+    sections.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
+    const books=mode==='books';list.hidden=!books;search.hidden=!books;
+    if(heading&&heading.tagName==='H3')heading.hidden=!books;
+    people.hidden=mode!=='people';places.hidden=mode!=='places';panel.hidden=mode!=='themes';
+    if(books)search.focus();
+    if(mode==='people')people.querySelector('input')?.focus();
+    if(mode==='places')places.querySelector('input')?.focus();
+    if(mode==='themes')filter.focus();
+  }
+  ['books','people','places','themes'].forEach(mode=>{
+    const b=sections.querySelector(`[data-mode="${mode}"]`);
+    if(b)b.onclick=()=>activate(mode);
+  });
+})();
+/* END ANCHOR & WORD v1.9.2 THEMES */
 
 </script>
 </body>
