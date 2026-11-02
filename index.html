@@ -2174,6 +2174,164 @@ showConnections(null);
 })();
 /* END ANCHOR & WORD v1.6.1 */
 
+/* ANCHOR & WORD v1.7 — ACTIVE SCRIPTURE STUDY */
+(function () {
+  "use strict";
+
+  if (document.getElementById("awActiveStudy")) return;
+
+  const visual = document.getElementById("visualConnections");
+  const reader = document.getElementById("scriptureReader");
+
+  if (!visual || !reader) return;
+
+  const style = document.createElement("style");
+  style.textContent = `
+    #awActiveStudy {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 12px;
+      margin: 8px 0;
+      padding: 10px 12px;
+      background: #102840;
+      border: 1px solid #536f90;
+      border-radius: 9px;
+    }
+
+    #awActiveStudy .aw-active-label {
+      color: #aebfd6;
+      font-size: 12px;
+    }
+
+    #awActiveStudy .aw-active-ref {
+      color: #efd18a;
+      font: bold 16px Georgia, serif;
+    }
+
+    #awActiveStudy .aw-active-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-left: auto;
+    }
+
+    #awActiveStudy button {
+      padding: 7px 10px;
+      font-size: 12px;
+    }
+
+    @media(max-width:650px) {
+      #awActiveStudy .aw-active-actions {
+        width: 100%;
+        margin-left: 0;
+      }
+
+      #awActiveStudy button {
+        flex: 1;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+
+  const bar = document.createElement("div");
+  bar.id = "awActiveStudy";
+
+  const label = document.createElement("span");
+  label.className = "aw-active-label";
+  label.textContent = "Currently Studying";
+
+  const reference = document.createElement("strong");
+  reference.className = "aw-active-ref";
+  reference.textContent = "Select a Bible verse";
+
+  const actions = document.createElement("div");
+  actions.className = "aw-active-actions";
+
+  const toScripture = document.createElement("button");
+  toScripture.type = "button";
+  toScripture.textContent = "📖 Scripture";
+
+  const toDiagram = document.createElement("button");
+  toDiagram.type = "button";
+  toDiagram.textContent = "✦ Diagram";
+
+  actions.append(toScripture, toDiagram);
+  bar.append(label, reference, actions);
+
+  visual.insertAdjacentElement("beforebegin", bar);
+
+  function activeReference() {
+    if (selected < 0) return "Select a Bible verse";
+
+    const book = names[selected];
+
+    if (chapter < 1) return book;
+
+    return book + " " + chapter +
+      (selectedVerse > 0 ? ":" + selectedVerse : "");
+  }
+
+  function updateBar() {
+    reference.textContent = activeReference();
+  }
+
+  function findSelectedVerse() {
+    return reader.querySelector(
+      ".scripture-verse.verse-selected"
+    );
+  }
+
+  toScripture.addEventListener("click", () => {
+    const verse = findSelectedVerse();
+
+    (verse || reader).scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
+  });
+
+  toDiagram.addEventListener("click", () => {
+    visual.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  });
+
+  // Follow the existing connection-selection workflow.
+  const previousShowConnections = showConnections;
+
+  showConnections = function(ref) {
+    previousShowConnections(ref);
+    updateBar();
+  };
+
+  // Update after a new book or chapter is selected.
+  const previousChoose = choose;
+  choose = function(i) {
+    previousChoose(i);
+    updateBar();
+  };
+
+  const previousChooseChapter = chooseChapter;
+  chooseChapter = function(n) {
+    previousChooseChapter(n);
+    updateBar();
+  };
+
+  // Update when the user selects a verse directly.
+  reader.addEventListener("click", updateBar);
+
+  reader.addEventListener("keydown", event => {
+    if (event.key === "Enter" || event.key === " ") {
+      queueMicrotask(updateBar);
+    }
+  });
+
+  updateBar();
+})();
+/* END ANCHOR & WORD v1.7 */
+
 
 
 </script>
