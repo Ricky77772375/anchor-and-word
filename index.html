@@ -1851,6 +1851,14 @@ showConnections(null);
 
     /* Override the spiral's inline opacity only
        when Focus or Isolate is active. */
+       
+/* Full Bible: restore normal visibility to all 66 books */
+#stage:not(.aw-v16-focus):not(.aw-v16-isolate)
+.book.connection-dimmed {
+  opacity: 1 !important;
+  filter: none !important;
+}
+
     #stage.aw-v16-focus .book.aw-v16-unrelated {
       opacity: .10 !important;
       filter: grayscale(.85) brightness(.65) !important;
