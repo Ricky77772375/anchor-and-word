@@ -1548,6 +1548,256 @@ showConnections(null);
 })();
 /* END ANCHOR & WORD v1.4 */
 
+/* ANCHOR & WORD v1.5 — SCRIPTURE NAVIGATION */
+(function () {
+  "use strict";
+
+  const visualPanel = document.getElementById("visualConnections");
+  const scripturePanel = document.getElementById("scriptureReader");
+  const connectedBooksBar =
+    document.querySelector(".connection-toolbar");
+
+  // Move the existing illuminated-books controls
+  // directly above the enlarged visual diagram.
+  if (connectedBooksBar && visualPanel) {
+    visualPanel.insertAdjacentElement(
+      "beforebegin",
+      connectedBooksBar
+    );
+  }
+
+  const style = document.createElement("style");
+  style.textContent = `
+    #awStudyNavigation {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 9px;
+      margin: 16px 0;
+      padding: 12px;
+      border: 1px solid #8d784f;
+      border-radius: 10px;
+      background: #102840;
+    }
+
+    #awStudyNavigation button {
+      padding: 9px 13px;
+      font-size: 13px;
+      border-color: #b39a68;
+    }
+
+    #awStudyNavigation .aw-nav-status {
+      flex-basis: 100%;
+      color: #bdcce0;
+      font-size: 12px;
+    }
+
+    .connection-toolbar.aw-connected-books {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 14px;
+      margin: 16px 0 4px;
+      border: 1px solid #a78a51;
+      border-radius: 10px;
+      background: #162e49;
+    }
+
+    .connection-toolbar.aw-connected-books::before {
+      content: "Illuminated Connected Books";
+      display: block;
+      flex-basis: 100%;
+      color: #efd18a;
+      font: 19px Georgia, serif;
+    }
+
+    .aw-reader-target {
+      animation: awVersePulse 1.6s ease-out;
+    }
+
+    @keyframes awVersePulse {
+      0% { box-shadow: 0 0 0 3px #efd18a; }
+      100% { box-shadow: 0 0 0 0 transparent; }
+    }
+
+    @media(max-width:650px) {
+      #awStudyNavigation button {
+        flex: 1;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+
+  if (connectedBooksBar) {
+    connectedBooksBar.classList.add("aw-connected-books");
+  }
+
+  // Create navigation controls beneath the visual diagram.
+  const nav = document.createElement("div");
+  nav.id = "awStudyNavigation";
+
+  function button(label, action) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = label;
+    b.addEventListener("click", action);
+    return b;
+  }
+
+  const status = document.createElement("div");
+  status.className = "aw-nav-status";
+  status.textContent =
+    "Select a Bible book or Scripture connection to begin.";
+
+  function currentLabel() {
+    if (selected < 0) return "No book selected";
+
+    return names[selected] +
+      (chapter > 0 ? " " + chapter : "") +
+      (selectedVerse > 0 ? ":" + selectedVerse : "");
+  }
+
+  function scrollToReader() {
+    scripturePanel.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+
+  function scrollToDiagram() {
+    visualPanel.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+
+  function previousPassage() {
+    if (!connectionHistory.length) {
+      status.textContent =
+        "No earlier connected passage in study history.";
+      return;
+    }
+
+    const previous = connectionHistory.pop();
+    openConnectedVerse(previous);
+  }
+
+  nav.append(
+    button("📖 View Scripture", scrollToReader),
+    button("✦ View Diagram", scrollToDiagram),
+    button("← Previous Passage", previousPassage),
+    status
+  );
+
+  if (visualPanel) {
+    visualPanel.insertAdjacentElement("afterend", nav);
+  }
+
+  // When a book is selected, immediately load chapter 1
+  // and select its first verse after Scripture finishes loading.
+  let bookOpenRequest = 0;
+
+  function openBookAtBeginning(index) {
+    const request = ++bookOpenRequest;
+
+    // The existing book button has already called choose(index).
+    // This extension opens chapter 1.
+    chooseChapter(1);
+
+    const expectedHeading = names[index] + " 1 · WEB";
+
+    function selectFirstVerse() {
+      if (request !== bookOpenRequest) return true;
+      if (selected !== index || chapter !== 1) return true;
+
+      const heading =
+        scripturePanel.querySelector(".reader-heading");
+
+      if (!heading ||
+          heading.textContent !== expectedHeading) {
+        return false;
+      }
+
+      const first = [...scripturePanel.querySelectorAll(
+        ".scripture-verse"
+      )].find(el =>
+        Number(el.querySelector(".verse-number")?.textContent)
+          === 1
+      );
+
+      if (!first) return false;
+
+      first.click();
+      first.classList.add("aw-reader-target");
+
+      status.textContent =
+        "Opened " + names[index] + " 1:1";
+
+      return true;
+    }
+
+    if (!selectFirstVerse()) {
+      const observer = new MutationObserver(() => {
+        if (selectFirstVerse()) observer.disconnect();
+      });
+
+      observer.observe(scripturePanel, {
+        childList: true,
+        subtree: true
+      });
+
+      setTimeout(() => observer.disconnect(), 12000);
+    }
+  }
+
+  // Preserve existing book-selection click handlers.
+  // Add chapter/verse navigation after they execute.
+  nodes.forEach((node, index) => {
+    node.addEventListener("click", () => {
+      if (Date.now() < suppressClickUntil) return;
+      if (selected !== index) return;
+
+      openBookAtBeginning(index);
+    });
+  });
+
+  // Give the book list the same convenient behavior.
+  listButtons.forEach((node, index) => {
+    node.addEventListener("click", () => {
+      if (selected !== index) return;
+      openBookAtBeginning(index);
+    });
+  });
+
+  // Update navigation status when Scripture changes.
+  const previousShowConnections = showConnections;
+
+  showConnections = function (ref) {
+    previousShowConnections(ref);
+
+    if (ref) {
+      status.textContent =
+        "Studying " + ref.book + " " +
+        ref.chapter + ":" + ref.verse;
+    } else {
+      status.textContent = currentLabel();
+    }
+  };
+
+  // Improve the visibility of a connected verse after navigation.
+  scripturePanel.addEventListener("click", event => {
+    const verse = event.target.closest(".scripture-verse");
+    if (!verse) return;
+
+    scripturePanel.querySelectorAll(".aw-reader-target")
+      .forEach(el => el.classList.remove("aw-reader-target"));
+
+    verse.classList.add("aw-reader-target");
+  });
+
+})();
+/* END ANCHOR & WORD v1.5 */
+
 </script>
 </body>
 </html>
