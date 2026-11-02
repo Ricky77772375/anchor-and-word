@@ -2771,6 +2771,127 @@ const scriptureConnectionLibrary = Object.freeze(
 })();
 /* END ANCHOR & WORD v1.9 */
 
+
+/* ANCHOR & WORD v1.9.1 — PLACES OF SCRIPTURE */
+(function () {
+  'use strict';
+  if (document.getElementById('awPlacesLibrary')) return;
+  const sections = document.getElementById('sections');
+  const list = document.getElementById('booklist');
+  const search = document.getElementById('search');
+  const people = document.getElementById('awPeopleLibrary');
+  const heading = search && search.previousElementSibling;
+  if (!sections || !list || !search || !people) return;
+
+  const places = [
+    {name:'Bethlehem', detail:'The town associated with the birth of Jesus and with David.', passages:[
+      ['Micah',5,2,'Bethlehem named in the prophetic passage'],
+      ['Matthew',2,1,'Jesus born in Bethlehem of Judaea'],
+      ['Luke',2,4,'Joseph travels to Bethlehem'],
+      ['1 Samuel',16,4,'Samuel comes to Bethlehem']]},
+    {name:'Nazareth', detail:'The town where Jesus grew up and from which he was known.', passages:[
+      ['Luke',1,26,'Gabriel sent to Nazareth'],
+      ['Luke',2,39,'The family returns to Nazareth'],
+      ['John',1,46,'Nathanael asks about Nazareth']]},
+    {name:'Jerusalem', detail:'A central setting for Israel’s worship and for the final days of Jesus’ earthly ministry.', passages:[
+      ['2 Samuel',5,6,'David goes to Jerusalem'],
+      ['1 Kings',8,1,'The ark brought to Jerusalem'],
+      ['Luke',19,41,'Jesus approaches and weeps over the city'],
+      ['Acts',2,5,'Devout Jews dwelling in Jerusalem']]},
+    {name:'Capernaum', detail:'A Galilean town where Jesus taught and performed works recorded in the Gospels.', passages:[
+      ['Matthew',4,13,'Jesus dwells in Capernaum'],
+      ['Mark',1,21,'Jesus teaches in the synagogue'],
+      ['Luke',7,1,'Jesus enters Capernaum']]},
+    {name:'Jericho', detail:'A city in accounts of Israel entering the land and in Jesus’ ministry.', passages:[
+      ['Joshua',6,20,'The walls of Jericho fall'],
+      ['Luke',18,35,'A blind man near Jericho'],
+      ['Luke',19,1,'Jesus passes through Jericho']]},
+    {name:'Mount Carmel', detail:'The mountain associated with Elijah’s confrontation with the prophets of Baal.', passages:[
+      ['1 Kings',18,19,'The gathering at Mount Carmel'],
+      ['1 Kings',18,36,'Elijah prays at the time of the offering'],
+      ['1 Kings',18,39,'The people acknowledge the LORD']]}
+  ];
+  const style = document.createElement('style');
+  style.textContent = `
+    #awPlacesLibrary { margin-top:12px; padding:10px; border:1px solid #486684; border-radius:9px; background:#0b1d34; }
+    #awPlacesLibrary h3 { margin:0 0 8px; color:#efd18a; font:18px Georgia,serif; }
+    #awPlacesLibrary article { margin:10px 0; padding:10px; border:1px solid #425e7c; border-radius:8px; }
+    #awPlacesLibrary article strong { color:#efd18a; }
+    #awPlacesLibrary article p, #awPlacesLibrary .aw-places-note { font-size:12px; line-height:1.55; color:#bfcee0; }
+    #awPlacesLibrary article button { width:100%; margin-top:6px; text-align:left; padding:8px; }
+  `;
+  document.head.appendChild(style);
+  const panel = document.createElement('section');
+  panel.id = 'awPlacesLibrary';
+  panel.hidden = true;
+  const title = document.createElement('h3');
+  title.textContent = 'Places of Scripture';
+  const notice = document.createElement('p');
+  notice.className = 'aw-places-note';
+  notice.textContent = 'A small curated Scripture index, not a complete geographic atlas. Select a passage to read it and add it to your study trace.';
+  const filter = document.createElement('input');
+  filter.type = 'search';
+  filter.placeholder = 'Search places or passages';
+  filter.setAttribute('aria-label','Search places of Scripture');
+  const results = document.createElement('div');
+  panel.append(title,notice,filter,results);
+  list.insertAdjacentElement('afterend',panel);
+
+  function render() {
+    results.replaceChildren();
+    const q = filter.value.trim().toLowerCase();
+    const matches = places.filter(place =>
+      (place.name+' '+place.detail+' '+place.passages.flat().join(' ')).toLowerCase().includes(q));
+    if (!matches.length) {
+      const msg = document.createElement('p');
+      msg.className = 'aw-places-note';
+      msg.textContent = 'No matching places in this starter library.';
+      results.appendChild(msg);
+    }
+    matches.forEach(place => {
+      const card = document.createElement('article');
+      const name = document.createElement('strong');
+      name.textContent = place.name;
+      const desc = document.createElement('p');
+      desc.textContent = place.detail;
+      card.append(name,desc);
+      place.passages.forEach(([book,chapter,verse,note]) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = `${book} ${chapter}:${verse} — ${note}`;
+        btn.addEventListener('click', () => {
+          openConnectedVerse({book,chapter,verse});
+          if (window.innerWidth < 651) document.getElementById('inspector').scrollIntoView({behavior:'smooth'});
+        });
+        card.appendChild(btn);
+      });
+      results.appendChild(card);
+    });
+  }
+  filter.addEventListener('input',render);
+  render();
+
+  // Override only the three implemented modes. Other planned modes retain their notices.
+  function activate(mode) {
+    sections.querySelectorAll('[data-mode]').forEach(btn =>
+      btn.setAttribute('aria-pressed',String(btn.dataset.mode===mode)));
+    const books = mode==='books';
+    list.hidden = !books;
+    search.hidden = !books;
+    if (heading && heading.tagName==='H3') heading.hidden = !books;
+    people.hidden = mode!=='people';
+    panel.hidden = mode!=='places';
+    if (mode==='books') search.focus();
+    if (mode==='people') people.querySelector('input')?.focus();
+    if (mode==='places') filter.focus();
+  }
+  ['books','people','places'].forEach(mode => {
+    const btn = sections.querySelector(`[data-mode="${mode}"]`);
+    if (btn) btn.onclick = () => activate(mode);
+  });
+})();
+/* END ANCHOR & WORD v1.9.1 */
+
 </script>
 </body>
 </html>
