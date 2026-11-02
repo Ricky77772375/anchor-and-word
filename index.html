@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Anchor & Word — Scripture Explorer v1.8 Foundation</title>
+<title>Anchor & Word — Scripture Explorer v1.8.1</title>
 <style>
 :root{--bg:#061121;--panel:#10243d;--line:#345171;--gold:#efd18a;--ink:#e9eef7;--muted:#aabbd1}
 *{box-sizing:border-box}
@@ -67,7 +67,7 @@ header{padding:12px}h1{font-size:23px}
 <header>
 <div><h1>⚓ Anchor & Word</h1>
 <small>Grounded in Scripture. Brought to life.</small></div>
-<small>Scripture Explorer · v1.8 Foundation</small>
+<small>Scripture Explorer · v1.8.1</small>
 </header>
 
 <div class="workspace" id="workspace">
@@ -135,7 +135,7 @@ Verified cross-references, people, places, and themes will appear in a future re
 </p>
 </aside>
 </div>
-<footer>Anchor & Word · Prototype v1.8 Foundation</footer>
+<footer>Anchor & Word · Prototype v1.8.1</footer>
 
 <script>
 'use strict';
@@ -2332,6 +2332,444 @@ const scriptureConnectionLibrary = Object.freeze(
 /* END ANCHOR & WORD v1.7 */
 
 
+
+
+/* ANCHOR & WORD v1.8.1 — PEOPLE LIBRARY & STUDY TRACE */
+(function () {
+  "use strict";
+
+  const visual = document.getElementById("visualConnections");
+  const nav = document.getElementById("awStudyNavigation");
+  const sections = document.getElementById("sections");
+  const bookList = document.getElementById("booklist");
+  const search = document.getElementById("search");
+  if (!visual || !sections || !bookList || !search) return;
+  if (document.getElementById("awStudyTrace")) return;
+
+  const css = document.createElement("style");
+  css.id = "aw-v181-style";
+  css.textContent = `
+    #awStudyTrace { margin: 10px 0 4px; padding: 13px 15px;
+      border: 1px solid #6c819e; border-radius: 11px; background: #0c2038; }
+    #awStudyTrace .aw-trace-head { display:flex; justify-content:space-between;
+      align-items:center; flex-wrap:wrap; gap:9px; }
+    #awStudyTrace h3 { margin:0; font:20px Georgia,serif; color:#efd18a; }
+    #awStudyTrace .aw-trace-actions { display:flex; gap:7px; flex-wrap:wrap; }
+    #awStudyTrace .aw-trace-actions button { font-size:12px; padding:6px 9px; }
+    #awTraceTrail { display:flex; align-items:center; flex-wrap:wrap;
+      gap:6px; margin-top:12px; line-height:1.6; }
+    #awTraceTrail button { padding:6px 9px; font-size:12px;
+      border:1px solid #6e819a; border-radius:6px; }
+    #awTraceTrail button[aria-current="step"] { background:#72542a;
+      border-color:#f0d58e; color:#fff4d4; }
+    #awTraceTrail .aw-trace-arrow { color:#efd18a; font-size:17px; }
+    #awStudyTrace .aw-trace-note { margin:8px 0 0; color:#afc0d6;
+      font-size:12px; line-height:1.5; }
+    #awPeopleLibrary { margin-top:12px; padding:10px;
+      background:#0b1c31; border:1px solid #536e8c; border-radius:10px; }
+    #awPeopleLibrary h3 { margin:0 0 8px; font:18px Georgia,serif; }
+    #awPeopleLibrary .aw-person { margin:9px 0; padding:9px;
+      border:1px solid #395775; border-radius:8px; background:#102942; }
+    #awPeopleLibrary .aw-person strong { color:#efd18a; }
+    #awPeopleLibrary .aw-person p { margin:6px 0; font-size:12px;
+      color:#bfcee0; line-height:1.5; }
+    #awPeopleLibrary .aw-person button { width:100%; text-align:left;
+      margin-top:5px; padding:7px; font-size:12px; }
+    #awPeopleLibrary .aw-empty { font-size:12px; color:#bfcee0; }
+  `;
+  document.head.appendChild(css);
+
+  // Track actual verse selections, not intermediate book/chapter loading.
+  const trace = [];
+  let pendingRevisit = null;
+  let pendingTimer = null;
+  const tracePanel = document.createElement("section");
+  tracePanel.id = "awStudyTrace";
+  tracePanel.setAttribute("aria-label", "Scripture study trace");
+  const head = document.createElement("div");
+  head.className = "aw-trace-head";
+  const heading = document.createElement("h3");
+  heading.textContent = "Scripture Study Trace";
+  const actions = document.createElement("div");
+  actions.className = "aw-trace-actions";
+  const copy = document.createElement("button");
+  copy.type = "button";
+  copy.textContent = "Copy Trace";
+  const clear = document.createElement("button");
+  clear.type = "button";
+  clear.textContent = "New Study";
+  actions.append(copy, clear);
+  head.append(heading, actions);
+  const trail = document.createElement("div");
+  trail.id = "awTraceTrail";
+  trail.setAttribute("aria-live", "polite");
+  const note = document.createElement("p");
+  note.className = "aw-trace-note";
+  note.textContent = "Select a verse to begin. Each new passage adds a step; click a previous step to revisit it.";
+  tracePanel.append(head, trail, note);
+  (nav || visual).insertAdjacentElement("afterend", tracePanel);
+
+  function refKey(ref) {
+    return `${ref.book} ${ref.chapter}:${ref.verse}`;
+  }
+  function renderTrace() {
+    trail.replaceChildren();
+    if (!trace.length) {
+      const empty = document.createElement("span");
+      empty.className = "aw-trace-note";
+      empty.textContent = "No passages traced yet.";
+      trail.appendChild(empty);
+      return;
+    }
+    trace.forEach((ref, index) => {
+      if (index) {
+        const arrow = document.createElement("span");
+        arrow.className = "aw-trace-arrow";
+        arrow.textContent = "→";
+        arrow.setAttribute("aria-hidden", "true");
+        trail.appendChild(arrow);
+      }
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.textContent = refKey(ref);
+      chip.title = "Revisit " + refKey(ref);
+      if (index === trace.length - 1) chip.setAttribute("aria-current", "step");
+      chip.addEventListener("click", () => {
+        // Revisit without adding a duplicate step to the trace.
+        pendingRevisit = refKey(ref);
+        clearTimeout(pendingTimer);
+        pendingTimer = setTimeout(() => { pendingRevisit = null; }, 13000);
+        openConnectedVerse(ref);
+      });
+      trail.appendChild(chip);
+    });
+    note.textContent = trace.length + " passage(s) visited in this study. Earlier steps remain available.";
+  }
+  const priorShowConnections = showConnections;
+  showConnections = function(ref) {
+    priorShowConnections(ref);
+    if (!ref || !names.includes(ref.book) || !Number.isInteger(ref.chapter) || !Number.isInteger(ref.verse)) return;
+    const key = refKey(ref);
+    if (pendingRevisit === key) {
+      pendingRevisit = null;
+      clearTimeout(pendingTimer);
+      return;
+    }
+    if (trace.length && refKey(trace[trace.length - 1]) === key) return;
+    trace.push({book:ref.book, chapter:ref.chapter, verse:ref.verse});
+    renderTrace();
+  };
+  clear.addEventListener("click", () => {
+    if (trace.length && !window.confirm("Start a new study and clear this Scripture trace?")) return;
+    trace.length = 0;
+    pendingRevisit = null;
+    clearTimeout(pendingTimer);
+    renderTrace();
+  });
+  copy.addEventListener("click", async () => {
+    if (!trace.length) return;
+    const content = trace.map(refKey).join(" -> ");
+    try {
+      await navigator.clipboard.writeText(content);
+      copy.textContent = "Copied!";
+      setTimeout(() => { copy.textContent = "Copy Trace"; }, 1500);
+    } catch (_) {
+      window.prompt("Copy your study trace:", content);
+    }
+  });
+  renderTrace();
+  // Controlled interface for saved studies. Existing trace behavior remains intact.
+  window.AWStudyTrace = {
+    get: () => trace.map(ref => ({...ref})),
+    replace: (steps) => {
+      trace.length = 0;
+      pendingRevisit = null;
+      clearTimeout(pendingTimer);
+      for (const ref of steps) {
+        if (names.includes(ref.book) && Number.isInteger(ref.chapter) &&
+            ref.chapter >= 1 && ref.chapter <= counts[names.indexOf(ref.book)] &&
+            Number.isInteger(ref.verse) && ref.verse >= 1 && ref.verse <= 176) {
+          trace.push({book:ref.book, chapter:ref.chapter, verse:ref.verse});
+        }
+      }
+      renderTrace();
+      document.dispatchEvent(new Event('aw:tracechange'));
+    }
+  };
+  const notifyTraceChange = () => document.dispatchEvent(new Event('aw:tracechange'));
+  const oldTraceRender = renderTrace;
+  renderTrace = function() { oldTraceRender(); notifyTraceChange(); };
+
+  // Small, explicitly curated People study library. This is not exhaustive.
+  const people = [
+    {name:"Abraham", description:"God's call, covenant promises, faith, and later New Testament reflections.",
+     passages:[
+      ["Genesis",12,1,"The call of Abram"],
+      ["Genesis",15,6,"Abram believed the LORD"],
+      ["Genesis",22,18,"Promise concerning his seed"],
+      ["Romans",4,3,"Paul discusses Abraham's faith"],
+      ["Galatians",3,6,"Faith and righteousness"],
+      ["Hebrews",11,8,"Abraham obeyed by faith"],
+      ["James",2,21,"James discusses Abraham's works"]]},
+    {name:"Moses", description:"The call of Moses, the exodus, and his example of faith.",
+     passages:[
+      ["Exodus",3,4,"God calls Moses"],
+      ["Exodus",14,21,"The sea divided"],
+      ["Deuteronomy",34,10,"Moses as prophet"],
+      ["Hebrews",11,24,"Moses' choice by faith"]]},
+    {name:"David", description:"David's anointing, God's promise, and the Psalms.",
+     passages:[
+      ["1 Samuel",16,13,"Samuel anoints David"],
+      ["2 Samuel",7,12,"Promise concerning David's offspring"],
+      ["Psalms",23,1,"The LORD is my shepherd"],
+      ["Acts",13,22,"David described in Paul's address"]]},
+    {name:"Paul", description:"Paul's encounter with Jesus, ministry, and final testimony.",
+     passages:[
+      ["Acts",9,3,"Light on the Damascus road"],
+      ["Acts",13,9,"Saul, also called Paul"],
+      ["Romans",1,1,"Paul introduces himself"],
+      ["2 Timothy",4,7,"I have fought the good fight"]]}
+  ];
+  const peoplePanel = document.createElement("section");
+  peoplePanel.id = "awPeopleLibrary";
+  peoplePanel.hidden = true;
+  const peopleTitle = document.createElement("h3");
+  peopleTitle.textContent = "People of Scripture";
+  const peopleSearch = document.createElement("input");
+  peopleSearch.type = "search";
+  peopleSearch.placeholder = "Find a person or topic";
+  peopleSearch.setAttribute("aria-label", "Search people of Scripture");
+  const peopleResults = document.createElement("div");
+  peoplePanel.append(peopleTitle, peopleSearch, peopleResults);
+  bookList.insertAdjacentElement("afterend", peoplePanel);
+
+  function renderPeople() {
+    peopleResults.replaceChildren();
+    const q = peopleSearch.value.trim().toLowerCase();
+    const found = people.filter(p =>
+      (p.name + " " + p.description + " " + p.passages.map(x => x.join(" ")).join(" "))
+        .toLowerCase().includes(q));
+    if (!found.length) {
+      const empty = document.createElement("p");
+      empty.className = "aw-empty";
+      empty.textContent = "No matching person in this starter library.";
+      peopleResults.appendChild(empty);
+    }
+    found.forEach(person => {
+      const card = document.createElement("article");
+      card.className = "aw-person";
+      const name = document.createElement("strong");
+      name.textContent = person.name;
+      const desc = document.createElement("p");
+      desc.textContent = person.description;
+      card.append(name, desc);
+      person.passages.forEach(([book,chapter,verse,description]) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = `${book} ${chapter}:${verse} — ${description}`;
+        b.addEventListener("click", () => openConnectedVerse({book,chapter,verse}));
+        card.appendChild(b);
+      });
+      peopleResults.appendChild(card);
+    });
+  }
+  peopleSearch.addEventListener("input", renderPeople);
+  renderPeople();
+
+  const booksMode = sections.querySelector('[data-mode="books"]');
+  const peopleMode = sections.querySelector('[data-mode="people"]');
+  const searchHeading = search.previousElementSibling;
+  function setMode(mode) {
+    sections.querySelectorAll('[data-mode]').forEach(b =>
+      b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
+    const isPeople = mode === "people";
+    peoplePanel.hidden = !isPeople;
+    search.hidden = isPeople;
+    bookList.hidden = isPeople;
+    if (searchHeading && searchHeading.tagName === "H3") searchHeading.hidden = isPeople;
+  }
+  if (booksMode) booksMode.onclick = () => { setMode("books"); search.focus(); };
+  if (peopleMode) peopleMode.onclick = () => { setMode("people"); peopleSearch.focus(); };
+})();
+/* END ANCHOR & WORD v1.8.1 */
+
+
+/* ANCHOR & WORD v1.9 — SAVED SCRIPTURE STUDIES */
+(function () {
+  'use strict';
+  const api = window.AWStudyTrace;
+  const panel = document.getElementById('awStudyTrace');
+  if (!api || !panel || document.getElementById('awSavedStudies')) return;
+  const KEY = 'anchor-word-saved-studies-v1';
+  const MAX_STUDIES = 60;
+  let studies = [];
+  let activeId = null;
+  let dirty = false;
+  let loading = false;
+  const style = document.createElement('style');
+  style.textContent = `
+    #awSavedStudies { margin-top:13px; padding-top:13px; border-top:1px solid #526783; }
+    #awSavedStudies h4 { margin:0 0 8px; color:#efd18a; font:18px Georgia,serif; }
+    #awSavedStudies .aw-save-row { display:flex; gap:7px; flex-wrap:wrap; align-items:center; margin:8px 0; }
+    #awSavedStudies input[type=text] { flex:1 1 190px; min-width:120px; }
+    #awSavedStudies select { max-width:100%; flex:1 1 200px; min-width:0; padding:9px;
+      background:#08182c; color:#fff; border:1px solid #536c89; border-radius:8px; }
+    #awSavedStudies button { padding:7px 10px; font-size:12px; }
+    #awSavedStudies .aw-save-status { color:#c6d2e3; font-size:12px; line-height:1.5; }
+    #awSavedStudies .aw-save-status[role=alert] { color:#ffdcaa; }
+    #awSavedStudies .aw-save-help { color:#aabbd1; font-size:12px; line-height:1.5; }
+  `;
+  document.head.appendChild(style);
+  const section = document.createElement('section');
+  section.id = 'awSavedStudies';
+  const heading = document.createElement('h4');
+  heading.textContent = 'Saved Scripture Studies';
+  const nameRow = document.createElement('div');
+  nameRow.className = 'aw-save-row';
+  const nameInput = document.createElement('input');
+  nameInput.type = 'text'; nameInput.maxLength = 100;
+  nameInput.placeholder = 'Study name, e.g. Christ and Creation';
+  nameInput.setAttribute('aria-label','Study name');
+  const saveBtn = button('Save Study');
+  nameRow.append(nameInput, saveBtn);
+  const listRow = document.createElement('div');
+  listRow.className = 'aw-save-row';
+  const picker = document.createElement('select');
+  picker.setAttribute('aria-label','Choose a saved study');
+  const openBtn = button('Open');
+  const deleteBtn = button('Delete');
+  listRow.append(picker, openBtn, deleteBtn);
+  const exportRow = document.createElement('div');
+  exportRow.className = 'aw-save-row';
+  const exportBtn = button('Export All Studies');
+  const importBtn = button('Import Backup');
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file'; fileInput.accept = '.json,application/json';
+  fileInput.hidden = true;
+  exportRow.append(exportBtn, importBtn, fileInput);
+  const status = document.createElement('p');
+  status.className = 'aw-save-status'; status.setAttribute('aria-live','polite');
+  const help = document.createElement('p');
+  help.className = 'aw-save-help';
+  help.textContent = 'Saved in this browser only. Export a backup to keep your studies if browser data is cleared or to move them to another device. Changes to a saved study require Save Study again.';
+  section.append(heading,nameRow,listRow,exportRow,status,help);
+  panel.appendChild(section);
+  function button(label) { const el=document.createElement('button'); el.type='button'; el.textContent=label; return el; }
+  function report(message,error=false) { status.textContent=message; if(error) status.setAttribute('role','alert'); else status.removeAttribute('role'); }
+  function validSteps(steps) {
+    if (!Array.isArray(steps) || steps.length > 2000) return false;
+    return steps.every(ref => ref && typeof ref.book==='string' && names.includes(ref.book) &&
+      Number.isInteger(ref.chapter) && ref.chapter>=1 && ref.chapter<=counts[names.indexOf(ref.book)] &&
+      Number.isInteger(ref.verse) && ref.verse>=1 && ref.verse<=176);
+  }
+  function validStudy(s) {
+    return s && typeof s.id==='string' && s.id.length<=100 &&
+      typeof s.name==='string' && s.name.trim().length>0 && s.name.length<=100 &&
+      validSteps(s.steps) && typeof s.updatedAt==='string';
+  }
+  function persist() {
+    try { localStorage.setItem(KEY,JSON.stringify({version:1,studies})); return true; }
+    catch (_) { report('Could not save in this browser. Export your studies as a backup.',true); return false; }
+  }
+  function refreshPicker() {
+    const old = picker.value;
+    picker.replaceChildren();
+    const placeholder=document.createElement('option');
+    placeholder.value=''; placeholder.textContent='Select a saved study'; picker.appendChild(placeholder);
+    for (const study of studies) {
+      const opt=document.createElement('option'); opt.value=study.id;
+      opt.textContent=`${study.name} (${study.steps.length} passages)`;
+      picker.appendChild(opt);
+    }
+    picker.value = studies.some(s=>s.id===old) ? old : (studies.some(s=>s.id===activeId)?activeId:'');
+  }
+  try {
+    const stored=JSON.parse(localStorage.getItem(KEY)||'null');
+    if (stored && stored.version===1 && Array.isArray(stored.studies)) {
+      studies=stored.studies.filter(validStudy).slice(0,MAX_STUDIES);
+    }
+  } catch (_) { report('Saved studies could not be read. Existing browser data was not changed.',true); }
+  refreshPicker();
+  document.addEventListener('aw:tracechange',()=> {
+    if (!loading && activeId) {
+      dirty=true;
+      report('Study changed. Select Save Study to keep your latest trace.');
+    }
+  });
+  saveBtn.addEventListener('click',()=> {
+    const name=nameInput.value.trim();
+    const steps=api.get();
+    if (!name) { report('Enter a name for your study.',true); nameInput.focus(); return; }
+    if (!steps.length) { report('Select at least one Scripture verse before saving.',true); return; }
+    if (!validSteps(steps)) { report('The current trace cannot be saved.',true); return; }
+    const existing=studies.find(s=>s.id===activeId);
+    if (!existing && studies.length>=MAX_STUDIES) { report('Maximum of 60 saved studies reached. Export or delete an older study.',true); return; }
+    const id=existing ? existing.id : String(Date.now())+'-'+Math.random().toString(36).slice(2);
+    const updated={id,name,steps,updatedAt:new Date().toISOString()};
+    const next=studies.filter(s=>s.id!==id);
+    next.unshift(updated);
+    const prior=studies;
+    studies=next;
+    if (!persist()) { studies=prior; return; }
+    activeId=id; dirty=false; refreshPicker(); picker.value=id;
+    report(`Saved “${name}” (${steps.length} passages).`);
+  });
+  openBtn.addEventListener('click',()=> {
+    const study=studies.find(s=>s.id===picker.value);
+    if (!study) { report('Select a saved study to open.',true); return; }
+    if (dirty && !window.confirm('Discard unsaved changes to your current study?')) return;
+    loading=true;
+    api.replace(study.steps);
+    loading=false;
+    activeId=study.id; dirty=false; nameInput.value=study.name;
+    report(`Opened “${study.name}”. Select a trace reference to continue reading.`);
+  });
+  deleteBtn.addEventListener('click',()=> {
+    const study=studies.find(s=>s.id===picker.value);
+    if (!study) { report('Select a saved study to delete.',true); return; }
+    if (!window.confirm(`Delete saved study “${study.name}”? This cannot be undone unless you have a backup.`)) return;
+    const previous=studies;
+    studies=studies.filter(s=>s.id!==study.id);
+    if (!persist()) { studies=previous; return; }
+    if (activeId===study.id) { activeId=null; dirty=false; nameInput.value=''; }
+    refreshPicker(); report(`Deleted “${study.name}”.`);
+  });
+  exportBtn.addEventListener('click',()=> {
+    if (!studies.length) { report('Save a study before exporting.',true); return; }
+    const blob=new Blob([JSON.stringify({app:'Anchor & Word',version:1,exportedAt:new Date().toISOString(),studies},null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const link=document.createElement('a'); link.href=url; link.download='anchor-and-word-studies.json';
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),3000);
+    report('Backup downloaded. Keep the JSON file somewhere safe.');
+  });
+  importBtn.addEventListener('click',()=>fileInput.click());
+  fileInput.addEventListener('change',async()=> {
+    const file=fileInput.files && fileInput.files[0];
+    fileInput.value=''; if (!file) return;
+    if (file.size>2_000_000) { report('Backup file is too large.',true); return; }
+    try {
+      const data=JSON.parse(await file.text());
+      if (!data || data.version!==1 || !Array.isArray(data.studies) ||
+          data.studies.length>MAX_STUDIES || !data.studies.every(validStudy)) {
+        report('This is not a valid Anchor & Word studies backup.',true); return;
+      }
+      const imported=data.studies.map(s=>({id:s.id,name:s.name,steps:s.steps,updatedAt:s.updatedAt}));
+      const merged=[...studies];
+      for (const study of imported) {
+        const idx=merged.findIndex(s=>s.id===study.id);
+        if (idx<0) merged.push(study);
+        else if (merged[idx].updatedAt<study.updatedAt) merged[idx]=study;
+      }
+      if (merged.length>MAX_STUDIES) { report('Import exceeds the 60-study limit.',true); return; }
+      if (!window.confirm(`Import ${imported.length} studies? Matching study IDs will keep the newer version.`)) return;
+      const old=studies; studies=merged;
+      if (!persist()) { studies=old; return; }
+      refreshPicker(); report(`Imported backup. ${studies.length} saved studies available.`);
+    } catch (_) { report('Could not read this backup file.',true); }
+  });
+})();
+/* END ANCHOR & WORD v1.9 */
 
 </script>
 </body>
