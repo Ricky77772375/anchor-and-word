@@ -67,7 +67,7 @@ header{padding:12px}h1{font-size:23px}
 <header>
 <div><h1>⚓ Anchor & Word</h1>
 <small>Grounded in Scripture. Brought to life.</small></div>
-<small>Scripture Explorer · v1.8.1</small>
+<small>Scripture Explorer · v2.1</small>
 </header>
 
 <div class="workspace" id="workspace">
@@ -84,7 +84,7 @@ header{padding:12px}h1{font-size:23px}
 <h3>Find a book</h3>
 <input id="search" placeholder="Search all 66 books">
 <div class="booklist" id="booklist"></div>
-<p class="subtle">Additional study layers are planned features.</p>
+<p class="subtle">Select a library above to explore Scripture.</p>
 </aside>
 
 <main class="panel">
@@ -3167,6 +3167,109 @@ const scriptureConnectionLibrary = Object.freeze(
   });
 })();
 /* END ANCHOR & WORD v2.0 */
+
+
+/* ANCHOR & WORD v2.1 — SCRIPTURE TIMELINE */
+(()=>{
+  const sections=document.getElementById('sections');
+  const list=document.getElementById('booklist');
+  const search=document.getElementById('search');
+  const people=document.getElementById('awPeopleLibrary');
+  const places=document.getElementById('awPlacesLibrary');
+  const themes=document.getElementById('awThemesLibrary');
+  const prophecy=document.getElementById('awProphecyLibrary');
+  const timelineButton=sections?.querySelector('[data-mode="timeline"]');
+  if(!sections||!list||!search||!people||!places||!themes||!prophecy||!timelineButton||document.getElementById('awTimelineLibrary'))return;
+  // Sequence follows the biblical narrative broadly, not a claim of precise absolute dates.
+  // Some books overlap in historical setting; Revelation's visions are not assigned calendar dates.
+  const events=[
+    {era:'Beginnings',name:'Creation',period:'Primeval history · date not assigned',description:'The opening account of God creating the heavens, the earth, and humanity.',people:'Adam and Eve',places:'Eden',refs:[['Genesis',1,1],['Genesis',2,7]]},
+    {era:'Beginnings',name:'The Flood and the Covenant with Noah',period:'Primeval history · date not assigned',description:'The flood narrative and God’s covenant with Noah following it.',people:'Noah',places:'Ararat region',refs:[['Genesis',6,13],['Genesis',9,11]]},
+    {era:'Patriarchs',name:'The Call of Abram',period:'Patriarchal period · dates debated',description:'God calls Abram and promises to make of him a great nation.',people:'Abraham',places:'Haran; Canaan',refs:[['Genesis',12,1],['Genesis',12,7]]},
+    {era:'Patriarchs',name:'Joseph in Egypt',period:'Patriarchal period · dates debated',description:'Joseph’s story leads his family into Egypt.',people:'Joseph; Jacob',places:'Egypt',refs:[['Genesis',37,3],['Genesis',45,5]]},
+    {era:'Exodus & Settlement',name:'The Exodus and Passover',period:'Date of the Exodus debated',description:'Israel’s departure from Egypt and the institution of Passover.',people:'Moses; Aaron',places:'Egypt',refs:[['Exodus',12,13],['Exodus',14,21]]},
+    {era:'Exodus & Settlement',name:'The Covenant at Sinai',period:'Wilderness journey · date debated',description:'The LORD gives Israel the covenant commandments at Sinai.',people:'Moses',places:'Mount Sinai',refs:[['Exodus',19,3],['Exodus',20,1]]},
+    {era:'Exodus & Settlement',name:'Israel Enters the Land',period:'Settlement period · chronology debated',description:'Israel crosses the Jordan and the account of Jericho follows.',people:'Joshua',places:'Jordan River; Jericho',refs:[['Joshua',3,17],['Joshua',6,20]]},
+    {era:'Kingdom',name:'David Becomes King',period:'United monarchy · approximate chronology',description:'David is anointed and later reigns over Israel.',people:'David; Samuel',places:'Bethlehem; Hebron; Jerusalem',refs:[['1 Samuel',16,13],['2 Samuel',5,4]]},
+    {era:'Kingdom',name:'Solomon Dedicates the Temple',period:'United monarchy · approximate chronology',description:'The ark is brought into the temple and Solomon prays.',people:'Solomon',places:'Jerusalem',refs:[['1 Kings',8,6],['1 Kings',8,22]]},
+    {era:'Kingdom',name:'The Kingdom Divides',period:'After Solomon · approximate chronology',description:'The northern and southern kingdoms separate.',people:'Rehoboam; Jeroboam',places:'Israel; Judah',refs:[['1 Kings',12,16],['1 Kings',12,20]]},
+    {era:'Exile & Return',name:'Jerusalem Falls and Exile',period:'586/587 BCE · conventional historical dating',description:'Babylon takes Jerusalem and the temple is burned.',people:'Nebuchadnezzar; Zedekiah',places:'Jerusalem; Babylon',refs:[['2 Kings',25,8],['2 Kings',25,11]]},
+    {era:'Exile & Return',name:'Return and Temple Rebuilding',period:'Persian period · sixth–fifth centuries BCE',description:'A decree permits return; the second temple is completed.',people:'Cyrus; Zerubbabel',places:'Jerusalem',refs:[['Ezra',1,2],['Ezra',6,15]]},
+    {era:'Life of Jesus',name:'Birth of Jesus',period:'Late first century BCE · precise year debated',description:'The Gospel accounts of Jesus’ birth and the announcement to shepherds.',people:'Jesus; Mary; Joseph',places:'Bethlehem',refs:[['Luke',2,4],['Matthew',2,1]]},
+    {era:'Life of Jesus',name:'Baptism of Jesus',period:'First century CE',description:'John baptizes Jesus; the Spirit descends and a voice speaks from heaven.',people:'Jesus; John the Baptist',places:'Jordan River',refs:[['Matthew',3,13],['Matthew',3,16]]},
+    {era:'Life of Jesus',name:'Jesus Begins His Public Ministry',period:'First century CE',description:'Jesus announces the kingdom and calls disciples.',people:'Jesus; Peter; Andrew',places:'Galilee; Capernaum',refs:[['Mark',1,14],['Matthew',4,18]]},
+    {era:'Life of Jesus',name:'Crucifixion and Resurrection',period:'c. 30 or 33 CE · date debated',description:'The Gospel accounts describe Jesus’ death, burial, and resurrection.',people:'Jesus',places:'Jerusalem',refs:[['Luke',23,33],['Luke',24,6],['John',20,16]]},
+    {era:'Early Church',name:'Pentecost',period:'First century CE · following the resurrection',description:'The Holy Spirit comes upon the gathered disciples and Peter addresses the crowd.',people:'Peter; the apostles',places:'Jerusalem',refs:[['Acts',2,1],['Acts',2,14]]},
+    {era:'Early Church',name:'Paul’s Missionary Work',period:'Mid-first century CE · approximate chronology',description:'Paul and his companions travel and proclaim the gospel.',people:'Paul; Barnabas',places:'Antioch; Mediterranean world',refs:[['Acts',13,2],['Acts',16,9]]},
+    {era:'Apostolic Witness',name:'John’s Revelation',period:'First century CE · dating debated',description:'John receives visions of Christ, judgment, and the new heaven and new earth. The visions are not assigned dates on this timeline.',people:'John',places:'Patmos',refs:[['Revelation',1,9],['Revelation',21,1]]}
+  ];
+  const css=document.createElement('style');css.id='aw-v21-styles';
+  css.textContent=`
+  #awTimelineLibrary{margin-top:12px;padding:11px;border:1px solid #826d49;border-radius:9px;background:#0b1d34}
+  #awTimelineLibrary h3{margin:0 0 8px;color:#efd18a;font:18px Georgia,serif}
+  #awTimelineLibrary .aw-tl-note,#awTimelineLibrary .aw-tl-count{font-size:12px;line-height:1.55;color:#c0d0e1}
+  #awTimelineLibrary .aw-tl-controls{display:grid;gap:7px;margin:10px 0}
+  #awTimelineLibrary .aw-tl-controls input,#awTimelineLibrary .aw-tl-controls select{width:100%;box-sizing:border-box}
+  #awTimelineLibrary .aw-tl-line{border-left:2px solid #a88c55;margin-left:8px;padding-left:14px}
+  #awTimelineLibrary .aw-tl-era{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#efd18a;margin:16px 0 8px}
+  #awTimelineLibrary article{position:relative;border:1px solid #48627e;background:#112941;border-radius:9px;padding:10px;margin:0 0 12px}
+  #awTimelineLibrary article:before{content:'';position:absolute;left:-22px;top:17px;width:10px;height:10px;border-radius:50%;background:#efd18a;border:2px solid #0b1d34}
+  #awTimelineLibrary h4{font:16px Georgia,serif;color:#efd18a;margin:0 0 6px}
+  #awTimelineLibrary .aw-tl-period{font-size:11px;color:#d2c39c}
+  #awTimelineLibrary article p{font-size:12px;line-height:1.5;color:#c0d0e1;margin:7px 0}
+  #awTimelineLibrary .aw-tl-meta{font-size:11px;color:#b7c8da}
+  #awTimelineLibrary article button{display:block;width:100%;text-align:left;padding:8px;margin-top:6px;overflow-wrap:anywhere}
+  `;document.head.appendChild(css);
+  const panel=document.createElement('section');panel.id='awTimelineLibrary';panel.hidden=true;
+  const title=document.createElement('h3');title.textContent='Biblical Timeline';
+  const notice=document.createElement('p');notice.className='aw-tl-note';notice.textContent='A curated narrative timeline, not a complete dated chronology. Events follow the broad order of Scripture; historical dates are approximate or debated where indicated. Select a passage to read it and add it to your Study Trace.';
+  const controls=document.createElement('div');controls.className='aw-tl-controls';
+  const filter=document.createElement('input');filter.type='search';filter.placeholder='Search events, people, places or verses';filter.setAttribute('aria-label','Search biblical timeline');
+  const eraSelect=document.createElement('select');eraSelect.setAttribute('aria-label','Filter timeline by era');
+  const eras=['All eras',...new Set(events.map(e=>e.era))];eras.forEach(era=>{const opt=document.createElement('option');opt.value=era;opt.textContent=era;eraSelect.appendChild(opt)});
+  controls.append(filter,eraSelect);
+  const count=document.createElement('p');count.className='aw-tl-count';count.setAttribute('aria-live','polite');
+  const results=document.createElement('div');results.className='aw-tl-line';
+  panel.append(title,notice,controls,count,results);list.insertAdjacentElement('afterend',panel);
+  function openPassage(book,chapter,verse){
+    if(typeof openConnectedVerse==='function')openConnectedVerse({book,chapter,verse});
+  }
+  function render(){
+    results.replaceChildren();const q=filter.value.trim().toLowerCase(),era=eraSelect.value;
+    const matches=events.filter(e=>(era==='All eras'||e.era===era)&&[e.era,e.name,e.period,e.description,e.people,e.places,...e.refs.map(r=>`${r[0]} ${r[1]}:${r[2]}`)].join(' ').toLowerCase().includes(q));
+    count.textContent=`${matches.length} of ${events.length} timeline events`;
+    let previousEra='';
+    matches.forEach(e=>{
+      if(e.era!==previousEra){const heading=document.createElement('h4');heading.className='aw-tl-era';heading.textContent=e.era;results.appendChild(heading);previousEra=e.era;}
+      const card=document.createElement('article');const name=document.createElement('h4');name.textContent=e.name;
+      const period=document.createElement('div');period.className='aw-tl-period';period.textContent=e.period;
+      const desc=document.createElement('p');desc.textContent=e.description;
+      const meta=document.createElement('div');meta.className='aw-tl-meta';meta.textContent=`People: ${e.people} · Places: ${e.places}`;
+      card.append(name,period,desc,meta);
+      e.refs.forEach(([book,chapter,verse])=>{const b=document.createElement('button');b.type='button';b.textContent=`Read ${book} ${chapter}:${verse}`;b.addEventListener('click',()=>openPassage(book,chapter,verse));card.appendChild(b)});
+      results.appendChild(card);
+    });
+    if(!matches.length){const empty=document.createElement('p');empty.className='aw-tl-note';empty.textContent='No timeline events match this search.';results.appendChild(empty)}
+  }
+  filter.addEventListener('input',render);eraSelect.addEventListener('change',render);render();
+  const heading=search.previousElementSibling;
+  function activate(mode){
+    sections.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
+    const books=mode==='books';list.hidden=!books;search.hidden=!books;
+    if(heading&&heading.tagName==='H3')heading.hidden=!books;
+    people.hidden=mode!=='people';places.hidden=mode!=='places';themes.hidden=mode!=='themes';prophecy.hidden=mode!=='prophecy';panel.hidden=mode!=='timeline';
+    if(books)search.focus();
+    if(mode==='people')people.querySelector('input')?.focus();
+    if(mode==='places')places.querySelector('input')?.focus();
+    if(mode==='themes')themes.querySelector('input')?.focus();
+    if(mode==='prophecy')prophecy.querySelector('input')?.focus();
+    if(mode==='timeline')filter.focus();
+  }
+  ['books','people','places','themes','prophecy','timeline'].forEach(mode=>{
+    const b=sections.querySelector(`[data-mode="${mode}"]`);if(b)b.onclick=()=>activate(mode);
+  });
+})();
+/* END ANCHOR & WORD v2.1 */
 
 </script>
 </body>
