@@ -155,10 +155,12 @@ names.forEach((name,i)=>{
  b.type='button';
  b.className='book'+(i>=39?' nt':'');
  b.textContent=name;
- b.onclick=()=>{
-   if(Date.now()<suppressClickUntil)return;
-   choose(i);
- };
+b.onclick=()=>{
+  if(Date.now()<suppressClickUntil)return;
+
+  choose(i);
+  chooseChapter(1);
+};
  spiral.appendChild(b);
  nodes.push(b);
 
@@ -1798,94 +1800,7 @@ showConnections(null);
 })();
 /* END ANCHOR & WORD v1.5 */
 
-/* ANCHOR & WORD — 3D BOOK DIRECT NAVIGATION REPAIR */
-(function () {
-  "use strict";
 
-  let lastPointerDown = null;
-  let navigationRequest = 0;
-
-  // Track movement so dragging does not open a book.
-  stage.addEventListener("pointerdown", function (e) {
-    lastPointerDown = {
-      x: e.clientX,
-      y: e.clientY
-    };
-  }, true);
-
-  stage.addEventListener("click", function (e) {
-    const book = e.target.closest(".book");
-
-    if (!book || !stage.contains(book)) return;
-
-    const index = nodes.indexOf(book);
-    if (index < 0) return;
-
-    // Ignore clicks immediately following a drag.
-    if (Date.now() < suppressClickUntil) return;
-
-    // Prevent older handlers from performing duplicate navigation.
-    e.stopImmediatePropagation();
-
-    const request = ++navigationRequest;
-
-    choose(index);
-    chooseChapter(1);
-
-    const expected = names[index] + " 1 · WEB";
-
-    function highlightFirstVerse() {
-      if (request !== navigationRequest) return true;
-      if (selected !== index || chapter !== 1) return true;
-
-      const heading = reader.querySelector(".reader-heading");
-
-      if (!heading || heading.textContent !== expected) {
-        return false;
-      }
-
-      const verse = [...reader.querySelectorAll(".scripture-verse")]
-        .find(el =>
-          Number(el.querySelector(".verse-number")?.textContent) === 1
-        );
-
-      if (!verse) return false;
-
-      verse.click();
-
-      verse.scrollIntoView({
-        behavior: "smooth",
-        block: "center"
-      });
-
-      return true;
-    }
-
-    if (!highlightFirstVerse()) {
-      const observer = new MutationObserver(() => {
-        if (highlightFirstVerse()) observer.disconnect();
-      });
-
-      observer.observe(reader, {
-        childList: true,
-        subtree: true
-      });
-
-      setTimeout(() => observer.disconnect(), 12000);
-    }
-
-  }, true);
-
-  // Ensure book buttons remain interactive above connection lines.
-  spiral.style.pointerEvents = "auto";
-
-  nodes.forEach(book => {
-    book.style.pointerEvents = "auto";
-    book.style.cursor = "pointer";
-  });
-
-})();
-/* END 3D BOOK DIRECT NAVIGATION REPAIR */
 
 </script>
 </body>
